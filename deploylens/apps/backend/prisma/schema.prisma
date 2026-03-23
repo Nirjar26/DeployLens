@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UnifiedStatus {
+  pending
+  running
+  success
+  failed
+  rolled_back
+}
+
+model User {
+  id              String             @id @default(uuid())
+  email           String             @unique
+  password_hash   String
+  name            String
+  avatar_url      String?
+  created_at      DateTime           @default(now())
+  updated_at      DateTime           @updatedAt
+  refresh_tokens  RefreshToken[]
+  github_connection GithubConnection?
+  aws_connection  AwsConnection?
+  repositories    Repository[]
+  environments    Environment[]
+  deployments     Deployment[]
+  initiated_rollbacks RollbackLog[]  @relation("RollbackInitiator")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  user_id     String
+  token_hash  String   @unique
+  token_jti   String   @unique
+  expires_at  DateTime
+  revoked     Boolean  @default(false)
+  revoked_at  DateTime?
+  created_at  DateTime @default(now())
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@map("refresh_tokens")
+}
+
+model GithubConnection {
+  id                String   @id @default(uuid())
+  user_id           String   @unique
+  access_token_enc  String
+  github_user_id    String   @unique
+  github_username   String
+  github_email      String?
+  created_at        DateTime @default(now())
+  connected_at      DateTime @default(now())
+  user              User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("github_connections")
+}
+
+model AwsConnection {
+  id                String   @id @default(uuid())
+  user_id           String   @unique
+  access_key_id_enc String
+  secret_key_enc    String
+  region            String
+  account_id        String
+  account_alias     String?
+  created_at        DateTime @default(now())
+  connected_at      DateTime @default(now())
+  user              User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("aws_connections")
+}
+
+model Repository {
+  id              String        @id @default(uuid())
+  user_id         String
+  github_repo_id  Int           @unique
+  owner           String
+  name            String
+  full_name       String
+  private         Boolean       @default(false)
+  default_branch  String        @default("main")
+  webhook_secret  String?
+  is_active       Boolean       @default(true)
+  created_at      DateTime      @default(now())
+  added_at        DateTime      @default(now())
+  user            User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  environments    Environment[]
+  deployments     Deployment[]
+
+  @@index([user_id])
+  @@map("repositories")
+}
+
+model Environment {
+  id                String       @id @default(uuid())
+  user_id           String
+  repository_id     String
+  codedeploy_app    String
+  codedeploy_group  String
+  display_name      String
+  color_tag         String
+  created_at        DateTime     @default(now())
+  user              User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  repository        Repository   @relation(fields: [repository_id], references: [id], onDelete: Cascade)
+  deployments       Deployment[]
+
+  @@unique([user_id, codedeploy_app, codedeploy_group])
+  @@index([user_id])
+  @@index([repository_id])
+  @@map("environments")
+}
+
+model Deployment {
+  id                   String            @id @default(uuid())
+  user_id              String
+  repository_id        String
+  environment_id       String
+  commit_sha           String
+  branch               String
+  commit_message       String?
+  triggered_by         String?
+  github_run_id        String?           @unique
+  github_status        String?
+  github_run_url       String?
+  codedeploy_id        String?           @unique
+  codedeploy_status    String?
+  unified_status       UnifiedStatus      @default(pending)
+  is_rollback          Boolean           @default(false)
+  rolled_back_from_id  String?
+  started_at           DateTime?
+  finished_at          DateTime?
+  duration_seconds     Int?
+  created_at           DateTime          @default(now())
+  user                 User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  repository           Repository        @relation(fields: [repository_id], references: [id], onDelete: Cascade)
+  environment          Environment       @relation(fields: [environment_id], references: [id], onDelete: Cascade)
+  rolled_back_from     Deployment?       @relation("RollbackChain", fields: [rolled_back_from_id], references: [id], onDelete: SetNull)
+  rollback_targets     Deployment[]      @relation("RollbackChain")
+  deployment_events    DeploymentEvent[]
+  rollback_logs        RollbackLog[]     @relation("RollbackDeployment")
+  target_rollback_logs RollbackLog[]     @relation("RollbackTarget")
+
+  @@index([user_id])
+  @@index([repository_id])
+  @@index([environment_id])
+  @@index([commit_sha])
+  @@map("deployments")
+}
+
+model DeploymentEvent {
+  id             String      @id @default(uuid())
+  deployment_id  String
+  source         String
+  event_name     String
+  status         String
+  message        String?
+  log_url        String?
+  started_at     DateTime?
+  ended_at       DateTime?
+  duration_ms    Int?
+  deployment     Deployment  @relation(fields: [deployment_id], references: [id], onDelete: Cascade)
+
+  @@index([deployment_id])
+  @@map("deployment_events")
+}
+
+model RollbackLog {
+  id                   String      @id @default(uuid())
+  deployment_id        String
+  target_deployment_id String
+  initiated_by         String
+  reason               String?
+  created_at           DateTime    @default(now())
+  initiated_at         DateTime    @default(now())
+  completed_at         DateTime?
+  status               String
+  deployment           Deployment  @relation("RollbackDeployment", fields: [deployment_id], references: [id], onDelete: Cascade)
+  target_deployment    Deployment  @relation("RollbackTarget", fields: [target_deployment_id], references: [id], onDelete: Cascade)
+  initiator            User        @relation("RollbackInitiator", fields: [initiated_by], references: [id], onDelete: Cascade)
+
+  @@index([deployment_id])
+  @@index([target_deployment_id])
+  @@index([initiated_by])
+  @@map("rollback_log")
+}
