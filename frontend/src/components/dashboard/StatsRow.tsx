@@ -1,3 +1,4 @@
+import { Activity, BarChart3, Clock, Rocket } from "lucide-react";
 import { useMemo } from "react";
 import { DeploymentStats } from "../../store/deploymentStore";
 
@@ -17,50 +18,71 @@ type Props = {
 };
 
 export default function StatsRow({ stats, isLoading }: Props) {
-  const successColor = useMemo(() => {
-    const value = stats?.success_rate_7d ?? 0;
-    if (value > 80) return "stat-good";
-    if (value >= 50) return "stat-warn";
-    return "stat-bad";
-  }, [stats?.success_rate_7d]);
+  const successRate = stats?.success_rate_7d ?? 0;
 
-  const runningColor = (stats?.running_now ?? 0) > 0 ? "stat-info" : "";
+  const successColor = useMemo(() => {
+    if (successRate > 80) return "#16a34a";
+    if (successRate >= 50) return "#d97706";
+    return "#dc2626";
+  }, [successRate]);
+
+  const runningNow = stats?.running_now ?? 0;
 
   if (isLoading) {
     return (
-      <div className="stats-row">
-        <div className="stat-card repo-skeleton" />
-        <div className="stat-card repo-skeleton" />
-        <div className="stat-card repo-skeleton" />
-        <div className="stat-card repo-skeleton" />
+      <div className="dl-stats-row">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="dl-stat-card dl-skeleton-card">
+            <div className="dl-skeleton-line" style={{ width: "60%" }} />
+            <div className="dl-skeleton-line dl-skeleton-big" style={{ width: "40%" }} />
+            <div className="dl-skeleton-line" style={{ width: "50%" }} />
+          </div>
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="stats-row">
-      <div className="stat-card">
-        <h4>Today</h4>
-        <div className="stat-value">{stats?.total_today ?? 0}</div>
-        <p>deployments</p>
-      </div>
-      <div className={`stat-card ${successColor}`}>
-        <h4>Success rate</h4>
-        <div className="stat-value">{stats?.success_rate_7d ?? 0}%</div>
-        <p>last 7 days</p>
-      </div>
-      <div className={`stat-card ${runningColor}`}>
-        <h4>Running</h4>
-        <div className="stat-value">
-          {(stats?.running_now ?? 0) > 0 ? <span className="pulse-dot" /> : null}
-          {stats?.running_now ?? 0}
+    <div className="dl-stats-row">
+      <div className="dl-stat-card">
+        <div className="dl-stat-header">
+          <span className="dl-stat-label">Today</span>
+          <Rocket size={16} className="dl-stat-icon" />
         </div>
-        <p>in progress</p>
+        <div className="dl-stat-value">{stats?.total_today ?? 0}</div>
+        <div className="dl-stat-sub">deployments</div>
       </div>
-      <div className="stat-card">
-        <h4>Avg duration</h4>
-        <div className="stat-value">{formatDuration(stats?.avg_duration_7d ?? 0)}</div>
-        <p>last 7 days</p>
+
+      <div className="dl-stat-card">
+        <div className="dl-stat-header">
+          <span className="dl-stat-label" style={{ color: successColor }}>Success rate</span>
+          <BarChart3 size={16} className="dl-stat-icon" />
+        </div>
+        <div className="dl-stat-value" style={{ color: successColor }}>
+          {successRate}%
+        </div>
+        <div className="dl-stat-sub">last 7 days</div>
+      </div>
+
+      <div className="dl-stat-card">
+        <div className="dl-stat-header">
+          <span className="dl-stat-label" style={runningNow > 0 ? { color: "#2563eb" } : undefined}>Running</span>
+          <Activity size={16} className="dl-stat-icon" />
+        </div>
+        <div className="dl-stat-value" style={runningNow > 0 ? { color: "#2563eb" } : undefined}>
+          {runningNow > 0 && <span className="dl-pulse-dot" />}
+          {runningNow}
+        </div>
+        <div className="dl-stat-sub">in progress</div>
+      </div>
+
+      <div className="dl-stat-card">
+        <div className="dl-stat-header">
+          <span className="dl-stat-label">Avg duration</span>
+          <Clock size={16} className="dl-stat-icon" />
+        </div>
+        <div className="dl-stat-value">{formatDuration(stats?.avg_duration_7d ?? 0)}</div>
+        <div className="dl-stat-sub">last 7 days</div>
       </div>
     </div>
   );

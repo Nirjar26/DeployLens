@@ -48,30 +48,58 @@ export default function DeploymentRow({ deployment, onOpen }: Props) {
     return formatDuration(sec);
   }, [deployment.duration_seconds, deployment.started_at, deployment.unified_status, now]);
 
+  const isRunning = deployment.unified_status === "running";
+  const triggerInitial = deployment.triggered_by?.charAt(0).toUpperCase() ?? "?";
+
   return (
-    <tr className="deployment-row" onClick={() => onOpen(deployment.id)}>
-      <td><StatusBadge status={deployment.unified_status} /></td>
-      <td>
-        <div className="repo-main-text">{deployment.repository.name}</div>
-        <div className="repo-sub-text">{deployment.repository.owner}</div>
+    <tr className="dl-table-row" onClick={() => onOpen(deployment.id)}>
+      <td className="dl-cell-status">
+        <StatusBadge status={deployment.unified_status} />
       </td>
       <td>
-        <div className="branch-row"><GitBranch size={13} /> {deployment.branch}</div>
-        <div className="sha-pill">{deployment.commit_sha_short}</div>
-        <div className="message-trunc">{deployment.commit_message ?? "—"}</div>
+        <div className="dl-cell-repo-name">{deployment.repository.name}</div>
+        <div className="dl-cell-repo-owner">{deployment.repository.owner}</div>
+      </td>
+      <td>
+        <div className="dl-cell-branch">
+          <GitBranch size={12} className="dl-branch-icon-inline" />
+          <span>{deployment.branch}</span>
+        </div>
+        <span className="dl-sha-pill">{deployment.commit_sha_short}</span>
+        <div className="dl-cell-message">{deployment.commit_message ?? "—"}</div>
       </td>
       <td>
         {deployment.environment ? (
-          <span className="env-pill"><span className="env-dot" style={{ background: deployment.environment.color_tag }} />{deployment.environment.display_name}</span>
-        ) : "—"}
+          <span className="dl-env-pill">
+            <span className="dl-env-dot" style={{ background: deployment.environment.color_tag }} />
+            {deployment.environment.display_name}
+          </span>
+        ) : (
+          <span className="dl-muted-dash">—</span>
+        )}
       </td>
-      <td>{deployment.triggered_by ?? "—"}</td>
-      <td>{liveDuration}</td>
-      <td title={new Date(deployment.created_at).toLocaleString()}>{formatRelative(deployment.created_at)}</td>
+      <td>
+        {deployment.triggered_by ? (
+          <div className="dl-trigger-cell">
+            <span className="dl-trigger-avatar">{triggerInitial}</span>
+            <span className="dl-trigger-name">{deployment.triggered_by}</span>
+          </div>
+        ) : (
+          <span className="dl-muted-dash">—</span>
+        )}
+      </td>
+      <td>
+        <span className={`dl-cell-duration ${isRunning ? "dl-cell-duration-live" : ""}`}>
+          {liveDuration}
+        </span>
+      </td>
+      <td title={new Date(deployment.created_at).toLocaleString()}>
+        <span className="dl-cell-time">{formatRelative(deployment.created_at)}</span>
+      </td>
       <td>
         <button
           type="button"
-          className="link-button"
+          className="dl-view-btn"
           onClick={(e) => {
             e.stopPropagation();
             onOpen(deployment.id);

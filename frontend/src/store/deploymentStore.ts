@@ -107,6 +107,7 @@ type DeploymentStore = {
   isLoadingDetail: boolean;
   isLoadingStats: boolean;
   activeView: "pipeline" | "environments";
+  modalOpen: boolean;
   fetchDeployments: () => Promise<void>;
   fetchDeploymentDetail: (id: string) => Promise<void>;
   fetchStats: () => Promise<void>;
@@ -116,6 +117,8 @@ type DeploymentStore = {
   setPage: (page: number) => Promise<void>;
   openDrawer: (id: string) => Promise<void>;
   closeDrawer: () => void;
+  openModal: (id: string) => Promise<void>;
+  closeModal: () => void;
   setView: (view: "pipeline" | "environments") => void;
   setFiltersFromQuery: (partial: Partial<DeploymentFilters>) => void;
   updateDeployment: (id: string, data: Partial<DeploymentRow>) => void;
@@ -144,6 +147,7 @@ export const useDeploymentStore = create<DeploymentStore>((set, get) => ({
   isLoadingDetail: false,
   isLoadingStats: false,
   activeView: "pipeline",
+  modalOpen: false,
 
   fetchDeployments: async () => {
     set({ isLoading: true });
@@ -213,6 +217,15 @@ export const useDeploymentStore = create<DeploymentStore>((set, get) => ({
 
   closeDrawer: () => {
     set({ selectedDeploymentId: null, selectedDeployment: null });
+  },
+
+  openModal: async (id) => {
+    set({ modalOpen: true, selectedDeploymentId: id });
+    await get().fetchDeploymentDetail(id);
+  },
+
+  closeModal: () => {
+    set({ modalOpen: false, selectedDeploymentId: null, selectedDeployment: null });
   },
 
   setView: (view) => {

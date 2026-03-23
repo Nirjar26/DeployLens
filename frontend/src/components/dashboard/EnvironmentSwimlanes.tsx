@@ -13,16 +13,18 @@ export default function EnvironmentSwimlanes({ environments, onOpen, onSelectEnv
 
   if (environments.length === 0) {
     return (
-      <div className="empty-state">
+      <div className="dl-env-empty-state">
         <h3>No environments configured</h3>
-        <p>No environments configured. Set them up in onboarding.</p>
-        <button type="button" className="auth-btn auth-btn-primary" onClick={() => navigate("/settings")}>Go to settings</button>
+        <p>Set them up in onboarding or settings.</p>
+        <button type="button" className="dl-btn dl-btn-primary" onClick={() => navigate("/settings")}>
+          Go to settings
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="swimlanes-wrap">
+    <div className="dl-swimlanes">
       {environments.map((entry) => (
         <EnvironmentColumn key={entry.environment.id} item={entry} onOpen={onOpen} onViewAll={onSelectEnvironment} />
       ))}

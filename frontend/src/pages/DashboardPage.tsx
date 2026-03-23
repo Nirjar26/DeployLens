@@ -1,10 +1,11 @@
-import { LayoutDashboard, LogOut, Settings } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import DeploymentDrawer from "../components/dashboard/DeploymentDrawer";
+import DeploymentModal from "../components/dashboard/DeploymentModal";
 import EnvironmentSwimlanes from "../components/dashboard/EnvironmentSwimlanes";
 import FilterBar from "../components/dashboard/FilterBar";
 import PipelineTable from "../components/dashboard/PipelineTable";
+import Sidebar from "../components/dashboard/Sidebar";
 import StatsRow from "../components/dashboard/StatsRow";
 import { useAuthStore } from "../store/authStore";
 import { useDeploymentStore } from "../store/deploymentStore";
@@ -13,7 +14,6 @@ export default function DashboardPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const user = useAuthStore((state) => state.user);
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
   const deployments = useDeploymentStore((state) => state.deployments);
@@ -27,12 +27,15 @@ export default function DashboardPage() {
   const selectedDeploymentId = useDeploymentStore((state) => state.selectedDeploymentId);
   const selectedDeployment = useDeploymentStore((state) => state.selectedDeployment);
   const activeView = useDeploymentStore((state) => state.activeView);
+  const modalOpen = useDeploymentStore((state) => state.modalOpen);
 
   const setFilter = useDeploymentStore((state) => state.setFilter);
   const clearFilters = useDeploymentStore((state) => state.clearFilters);
   const setPage = useDeploymentStore((state) => state.setPage);
   const openDrawer = useDeploymentStore((state) => state.openDrawer);
   const closeDrawer = useDeploymentStore((state) => state.closeDrawer);
+  const openModal = useDeploymentStore((state) => state.openModal);
+  const closeModal = useDeploymentStore((state) => state.closeModal);
   const setView = useDeploymentStore((state) => state.setView);
   const fetchEnvironmentLatest = useDeploymentStore((state) => state.fetchEnvironmentLatest);
   const setFiltersFromQuery = useDeploymentStore((state) => state.setFiltersFromQuery);
@@ -55,6 +58,10 @@ export default function DashboardPage() {
   const handleOpenDrawer = useCallback((id: string) => {
     void openDrawer(id);
   }, [openDrawer]);
+
+  const handleOpenModal = useCallback((id: string) => {
+    void openModal(id);
+  }, [openModal]);
 
   useEffect(() => {
     if (hasInitializedFromUrl.current) {
@@ -105,8 +112,9 @@ export default function DashboardPage() {
   useEffect(() => {
     return () => {
       closeDrawer();
+      closeModal();
     };
-  }, [closeDrawer, location.pathname]);
+  }, [closeDrawer, closeModal, location.pathname]);
 
   const hasFilters = useMemo(
     () => Boolean(filters.repo || filters.environment || filters.status || filters.branch || filters.from || filters.to),
@@ -128,26 +136,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="dashboard-shell">
-      <aside className="dashboard-sidebar">
-        <div>
-          <div className="dashboard-logo">DeployLens</div>
-          <p className="dashboard-user-email">{user?.email}</p>
-          <nav className="dashboard-nav">
-            <Link to="/dashboard" className="nav-item nav-item-active"><LayoutDashboard size={16} /> Dashboard</Link>
-            <Link to="/settings" className="nav-item"><Settings size={16} /> Settings</Link>
-          </nav>
-        </div>
-        <button type="button" className="nav-item nav-logout" onClick={handleLogout}><LogOut size={16} /> Logout</button>
-      </aside>
+    <div className="dl-dashboard-shell">
+      <Sidebar onLogout={handleLogout} />
 
-      <main className="dashboard-main">
-        <header className="dashboard-topbar">
-          <h1>Deployments</h1>
-          <div className="view-toggle">
-            <button type="button" className={`auth-btn ${activeView === "pipeline" ? "auth-btn-primary" : "auth-btn-secondary"}`} onClick={() => setView("pipeline")}>Pipeline</button>
-            <button type="button" className={`auth-btn ${activeView === "environments" ? "auth-btn-primary" : "auth-btn-secondary"}`} onClick={() => setView("environments")}>Environments</button>
-          </div>
+      <main className="dl-dashboard-main">
+        <header className="dl-dashboard-topbar">
+          <h1 className="dl-page-title">Deployments</h1>
         </header>
 
         <StatsRow stats={stats} isLoading={isLoadingStats} />
@@ -173,7 +167,7 @@ export default function DashboardPage() {
         ) : (
           <EnvironmentSwimlanes
             environments={environmentLatest}
-            onOpen={handleOpenDrawer}
+            onOpen={handleOpenModal}
             onSelectEnvironment={(name) => {
               handleChangeFilter("environment", name);
               setView("pipeline");
@@ -182,12 +176,25 @@ export default function DashboardPage() {
         )}
       </main>
 
+      {/* Slide-in drawer for pipeline table rows */}
       <DeploymentDrawer
-        open={Boolean(selectedDeploymentId)}
+        open={Boolean(selectedDeploymentId) && !modalOpen}
         detail={selectedDeployment}
         isLoading={isLoadingDetail}
         onClose={closeDrawer}
         onOpenLinkedDeployment={handleOpenDrawer}
+      />
+
+      {/* Centered modal for environment cards */}
+      <DeploymentModal
+        open={modalOpen}
+        detail={selectedDeployment}
+        isLoading={isLoadingDetail}
+        onClose={closeModal}
+        onOpenLinkedDeployment={(id) => {
+          closeModal();
+          void openModal(id);
+        }}
       />
     </div>
   );
