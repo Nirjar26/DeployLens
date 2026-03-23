@@ -255,38 +255,38 @@ export async function getEnvironmentLatest(userId: string) {
   const results = await Promise.all(
     environments.map(async (env: any) => {
       const [latest, totalToday, sevenDayRows] = await Promise.all([
-      prisma.deployment.findFirst({
-        where: {
-          user_id: userId,
-          environment_id: env.id,
-        },
-        include: {
-          repository: { select: { id: true, full_name: true, owner: true, name: true } },
-          environment: { select: { id: true, display_name: true, color_tag: true } },
-        },
-        orderBy: { created_at: "desc" },
-      }),
-      prisma.deployment.count({
-        where: {
-          user_id: userId,
-          environment_id: env.id,
-          created_at: { gte: todayStart },
-        },
-      }),
-      prisma.deployment.findMany({
-        where: {
-          user_id: userId,
-          environment_id: env.id,
-          created_at: { gte: sevenDaysAgo },
-        },
-        select: {
-          unified_status: true,
-        },
-      }),
-    ]);
+        prisma.deployment.findFirst({
+          where: {
+            user_id: userId,
+            environment_id: env.id,
+          },
+          include: {
+            repository: { select: { id: true, full_name: true, owner: true, name: true } },
+            environment: { select: { id: true, display_name: true, color_tag: true } },
+          },
+          orderBy: { created_at: "desc" },
+        }),
+        prisma.deployment.count({
+          where: {
+            user_id: userId,
+            environment_id: env.id,
+            created_at: { gte: todayStart },
+          },
+        }),
+        prisma.deployment.findMany({
+          where: {
+            user_id: userId,
+            environment_id: env.id,
+            created_at: { gte: sevenDaysAgo },
+          },
+          select: {
+            unified_status: true,
+          },
+        }),
+      ]);
 
       const successCount = sevenDayRows.filter((row: any) => row.unified_status === "success").length;
-    const successRate = sevenDayRows.length === 0 ? 0 : Math.round((successCount / sevenDayRows.length) * 100);
+      const successRate = sevenDayRows.length === 0 ? 0 : Math.round((successCount / sevenDayRows.length) * 100);
 
       return {
         environment: {
@@ -298,7 +298,7 @@ export async function getEnvironmentLatest(userId: string) {
         total_today: totalToday,
         success_rate: successRate,
       };
-    });
+    }),
   );
 
   return { environments: results };
