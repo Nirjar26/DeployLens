@@ -28,9 +28,18 @@ function formatDuration(seconds: number | null): string {
 type Props = {
   deployment: DeploymentRowType;
   onOpen: (id: string) => void;
+  compareMode: boolean;
+  isSelectedForCompare: boolean;
+  onToggleCompareSelection: (id: string) => void;
 };
 
-export default function DeploymentRow({ deployment, onOpen }: Props) {
+export default function DeploymentRow({
+  deployment,
+  onOpen,
+  compareMode,
+  isSelectedForCompare,
+  onToggleCompareSelection,
+}: Props) {
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -53,6 +62,16 @@ export default function DeploymentRow({ deployment, onOpen }: Props) {
 
   return (
     <tr className="dl-table-row" onClick={() => onOpen(deployment.id)}>
+      {compareMode ? (
+        <td>
+          <input
+            type="checkbox"
+            checked={isSelectedForCompare}
+            onChange={() => onToggleCompareSelection(deployment.id)}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </td>
+      ) : null}
       <td className="dl-cell-status">
         <StatusBadge status={deployment.unified_status} />
       </td>

@@ -1,16 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import DeploymentDrawer from "../components/dashboard/DeploymentDrawer";
 import DeploymentModal from "../components/dashboard/DeploymentModal";
+import ConnectionStatus from "../components/dashboard/ConnectionStatus";
+import CompareModal from "../components/dashboard/CompareModal";
 import EnvironmentSwimlanes from "../components/dashboard/EnvironmentSwimlanes";
 import FilterBar from "../components/dashboard/FilterBar";
 import PipelineTable from "../components/dashboard/PipelineTable";
 import Sidebar from "../components/dashboard/Sidebar";
 import StatsRow from "../components/dashboard/StatsRow";
+import { useDeploymentSocket } from "../hooks/useDeploymentSocket";
 import { useAuthStore } from "../store/authStore";
 import { useDeploymentStore } from "../store/deploymentStore";
 
 export default function DashboardPage() {
+  useDeploymentSocket();
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -42,6 +46,9 @@ export default function DashboardPage() {
   const fetchDeployments = useDeploymentStore((state) => state.fetchDeployments);
   const fetchStats = useDeploymentStore((state) => state.fetchStats);
   const hasInitializedFromUrl = useRef(false);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSelection, setCompareSelection] = useState<string[]>([]);
+  const [compareModalOpen, setCompareModalOpen] = useState(false);
 
   const handleChangeFilter = useCallback((key: Parameters<typeof setFilter>[0], value: Parameters<typeof setFilter>[1]) => {
     void setFilter(key, value);
@@ -62,6 +69,20 @@ export default function DashboardPage() {
   const handleOpenModal = useCallback((id: string) => {
     void openModal(id);
   }, [openModal]);
+
+  const handleToggleCompareSelection = useCallback((id: string) => {
+    setCompareSelection((current) => {
+      if (current.includes(id)) {
+        return current.filter((item) => item !== id);
+      }
+
+      if (current.length >= 2) {
+        return [current[1], id];
+      }
+
+      return [...current, id];
+    });
+  }, []);
 
   useEffect(() => {
     if (hasInitializedFromUrl.current) {
@@ -116,6 +137,13 @@ export default function DashboardPage() {
     };
   }, [closeDrawer, closeModal, location.pathname]);
 
+  useEffect(() => {
+    if (!compareMode) {
+      setCompareSelection([]);
+      setCompareModalOpen(false);
+    }
+  }, [compareMode]);
+
   const hasFilters = useMemo(
     () => Boolean(filters.repo || filters.environment || filters.status || filters.branch || filters.from || filters.to),
     [filters],
@@ -142,6 +170,7 @@ export default function DashboardPage() {
       <main className="dl-dashboard-main">
         <header className="dl-dashboard-topbar">
           <h1 className="dl-page-title">Deployments</h1>
+          <ConnectionStatus />
         </header>
 
         <StatsRow stats={stats} isLoading={isLoadingStats} />
@@ -152,6 +181,8 @@ export default function DashboardPage() {
               filters={filters}
               onChangeFilter={handleChangeFilter}
               onClear={handleClearFilters}
+              compareMode={compareMode}
+              onToggleCompareMode={() => setCompareMode((value) => !value)}
             />
             <PipelineTable
               rows={deployments}
@@ -162,6 +193,10 @@ export default function DashboardPage() {
               onClearFilters={handleClearFilters}
               onSetPage={handleSetPage}
               onSetLimit={(limit) => handleChangeFilter("limit", limit)}
+              compareMode={compareMode}
+              compareSelection={compareSelection}
+              onToggleCompareSelection={handleToggleCompareSelection}
+              onOpenCompare={() => setCompareModalOpen(true)}
             />
           </>
         ) : (
@@ -195,6 +230,13 @@ export default function DashboardPage() {
           closeModal();
           void openModal(id);
         }}
+      />
+
+      <CompareModal
+        open={compareModalOpen && compareSelection.length === 2}
+        deploymentAId={compareSelection[0] ?? null}
+        deploymentBId={compareSelection[1] ?? null}
+        onClose={() => setCompareModalOpen(false)}
       />
     </div>
   );

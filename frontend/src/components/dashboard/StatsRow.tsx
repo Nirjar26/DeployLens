@@ -1,6 +1,7 @@
 import { Activity, BarChart3, Clock, Rocket } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { DeploymentStats } from "../../store/deploymentStore";
+import { useDeploymentStore } from "../../store/deploymentStore";
 
 function formatDuration(seconds: number): string {
   if (seconds <= 0) return "0s";
@@ -18,6 +19,9 @@ type Props = {
 };
 
 export default function StatsRow({ stats, isLoading }: Props) {
+  const statsNeedRefresh = useDeploymentStore((state) => state.statsNeedRefresh);
+  const clearStatsRefresh = useDeploymentStore((state) => state.clearStatsRefresh);
+  const fetchStats = useDeploymentStore((state) => state.fetchStats);
   const successRate = stats?.success_rate_7d ?? 0;
 
   const successColor = useMemo(() => {
@@ -27,6 +31,15 @@ export default function StatsRow({ stats, isLoading }: Props) {
   }, [successRate]);
 
   const runningNow = stats?.running_now ?? 0;
+
+  useEffect(() => {
+    if (!statsNeedRefresh) {
+      return;
+    }
+
+    void fetchStats();
+    clearStatsRefresh();
+  }, [statsNeedRefresh, fetchStats, clearStatsRefresh]);
 
   if (isLoading) {
     return (

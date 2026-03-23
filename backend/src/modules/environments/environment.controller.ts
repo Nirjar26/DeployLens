@@ -13,7 +13,7 @@ export async function createEnvironment(req: Request, res: Response, next: NextF
     }
 
     const body = createEnvironmentSchema.parse(req.body);
-    const created = await environmentService.createOrUpdateEnvironment(req.user.id, body);
+    const created = await environmentService.createOrUpdateEnvironment(req.user.id, body, req);
     return sendSuccess(res, created);
   } catch (error) {
     if (error instanceof Error && error.message === "FORBIDDEN") {
@@ -56,7 +56,7 @@ export async function updateEnvironment(req: Request, res: Response, next: NextF
     }
 
     const body = updateEnvironmentSchema.parse(req.body);
-    const updated = await environmentService.updateEnvironment(req.user.id, req.params.id, body);
+    const updated = await environmentService.updateEnvironment(req.user.id, req.params.id, body, req);
     return sendSuccess(res, updated);
   } catch (error) {
     if (error instanceof Error && error.message === "FORBIDDEN") {
@@ -82,7 +82,7 @@ export async function deleteEnvironment(req: Request, res: Response, next: NextF
       throw new Error("Invalid credentials");
     }
 
-    const result = await environmentService.deleteEnvironment(req.user.id, req.params.id);
+    const result = await environmentService.deleteEnvironment(req.user.id, req.params.id, req);
     return sendSuccess(res, result);
   } catch (error) {
     if (error instanceof Error && error.message === "FORBIDDEN") {

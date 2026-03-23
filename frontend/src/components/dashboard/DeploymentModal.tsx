@@ -1,5 +1,8 @@
 import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Loader2, MinusCircle, RotateCcw, X, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { deployments, github } from "../../lib/api";
+import { unwatchDeployment, watchDeployment } from "../../lib/socket";
+import { useAwsStore } from "../../store/awsStore";
 import { DeploymentDetail } from "../../store/deploymentStore";
 import StatusBadge from "./StatusBadge";
 
@@ -41,6 +44,12 @@ function LifecycleIcon({ status }: { status: string }) {
 export default function DeploymentModal({ open, detail, isLoading, onClose, onOpenLinkedDeployment }: Props) {
   const [now, setNow] = useState(Date.now());
   const [rollbackToast, setRollbackToast] = useState<string | null>(null);
+  const [rerunLoading, setRerunLoading] = useState(false);
+  const [promoteTargetId, setPromoteTargetId] = useState("");
+  const [promoteLoading, setPromoteLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const environments = useAwsStore((state) => state.environments);
 
   useEffect(() => {
     if (!open) return;
@@ -56,8 +65,25 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
   }, [detail, open]);
 
   useEffect(() => {
-    if (!open) setRollbackToast(null);
+    if (!open) {
+      setRollbackToast(null);
+      setPromoteTargetId("");
+      setActionError(null);
+      setActionSuccess(null);
+    }
   }, [open]);
+
+  useEffect(() => {
+    const deploymentId = open ? detail?.id : null;
+    if (!deploymentId) {
+      return;
+    }
+
+    watchDeployment(deploymentId);
+    return () => {
+      unwatchDeployment(deploymentId);
+    };
+  }, [open, detail?.id]);
 
   const lifecycleEvents = useMemo(() => {
     if (!detail) return [];
@@ -68,6 +94,67 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
       return (aIndex === -1 ? 999 : aIndex) - (bIndex === -1 ? 999 : bIndex);
     });
   }, [detail]);
+
+  const promoteOptions = useMemo(() => {
+    if (!detail?.repository?.id) {
+      return [];
+    }
+
+    return environments.filter((env) => env.repository_id === detail.repository.id && env.id !== detail.environment?.id);
+  }, [detail?.environment?.id, detail?.repository?.id, environments]);
+
+  async function handleRerun() {
+    if (!detail?.github_run_id) return;
+
+    setRerunLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      await github.rerunWorkflow(detail.github_run_id);
+      setActionSuccess("Workflow re-run has been triggered.");
+    } catch (error) {
+      const code = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+      if (code === "RUN_NOT_FAILED") {
+        setActionError("Only failed workflow runs can be re-run.");
+      } else if (code === "GITHUB_FORBIDDEN") {
+        setActionError("GitHub workflow write permission is missing.");
+      } else {
+        setActionError("Failed to trigger re-run.");
+      }
+    } finally {
+      setRerunLoading(false);
+    }
+  }
+
+  async function handlePromote() {
+    if (!detail || !promoteTargetId) return;
+
+    setPromoteLoading(true);
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      const result = await deployments.promote(detail.id, promoteTargetId);
+      setActionSuccess(result.message || "Promotion started.");
+      if (result.new_deployment_id) {
+        onOpenLinkedDeployment(result.new_deployment_id);
+      }
+    } catch (error) {
+      const code = (error as { response?: { data?: { error?: { code?: string } } } })?.response?.data?.error?.code;
+      if (code === "NOT_PROMOTABLE") {
+        setActionError("Only successful deployments can be promoted.");
+      } else if (code === "TARGET_ENV_REPO_MISMATCH") {
+        setActionError("Target environment must belong to the same repository.");
+      } else if (code === "AWS_PROMOTION_FAILED") {
+        setActionError("AWS rejected this promotion. Verify CodeDeploy permissions.");
+      } else {
+        setActionError("Failed to promote deployment.");
+      }
+    } finally {
+      setPromoteLoading(false);
+    }
+  }
 
   if (!open) return null;
 
@@ -187,6 +274,17 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
                   ) : (
                     <p className="dl-modal-no-data">No step data available</p>
                   )}
+
+                  {detail.unified_status === "failed" ? (
+                    <button
+                      type="button"
+                      className="auth-btn auth-btn-secondary"
+                      onClick={() => void handleRerun()}
+                      disabled={rerunLoading}
+                    >
+                      {rerunLoading ? "Triggering..." : "Re-run workflow"}
+                    </button>
+                  ) : null}
                 </div>
               )}
 
@@ -277,6 +375,42 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
                   </button>
                 </div>
               )}
+
+              {detail.unified_status === "success" ? (
+                <div className="dl-modal-section">
+                  <div className="dl-modal-section-header">
+                    <RotateCcw size={14} color="#64748b" />
+                    <span>Promote</span>
+                  </div>
+                  {promoteOptions.length === 0 ? (
+                    <p className="dl-modal-no-data">No target environments available for this repository.</p>
+                  ) : (
+                    <>
+                      <select
+                        className="analytics-repo-select"
+                        value={promoteTargetId}
+                        onChange={(event) => setPromoteTargetId(event.target.value)}
+                      >
+                        <option value="">Choose target environment</option>
+                        {promoteOptions.map((env) => (
+                          <option key={env.id} value={env.id}>{env.display_name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        className="auth-btn auth-btn-primary"
+                        onClick={() => void handlePromote()}
+                        disabled={!promoteTargetId || promoteLoading}
+                      >
+                        {promoteLoading ? "Promoting..." : "Promote deployment"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : null}
+
+              {actionError ? <div className="repo-toast-error drawer-toast">{actionError}</div> : null}
+              {actionSuccess ? <div className="repo-toast-success drawer-toast">{actionSuccess}</div> : null}
             </>
           )}
         </div>

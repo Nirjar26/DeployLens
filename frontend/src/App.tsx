@@ -8,8 +8,10 @@ import SelectReposPage from "./pages/onboarding/SelectReposPage";
 import ConnectAwsPage from "./pages/onboarding/ConnectAwsPage";
 import MapEnvironmentsPage from "./pages/onboarding/MapEnvironmentsPage";
 import DashboardPage from "./pages/DashboardPage";
+import AnalyticsPage from "./pages/AnalyticsPage";
 import SettingsPage from "./pages/SettingsPage";
 import { setAuthFailureHandler } from "./lib/api";
+import { useSocket } from "./hooks/useSocket";
 import { useAuthStore } from "./store/authStore";
 
 function FullScreenSpinner() {
@@ -68,6 +70,7 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const didInitRef = useRef(false);
+  useSocket();
 
   useEffect(() => {
     if (didInitRef.current) {
@@ -124,6 +127,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/analytics"
+        element={
+          <ProtectedRoute>
+            <AnalyticsPage />
           </ProtectedRoute>
         }
       />

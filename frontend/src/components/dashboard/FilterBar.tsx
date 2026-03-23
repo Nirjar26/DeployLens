@@ -8,9 +8,11 @@ type Props = {
   filters: DeploymentFilters;
   onChangeFilter: (key: keyof Omit<DeploymentFilters, "page" | "limit"> | "limit", value: string | number) => void;
   onClear: () => void;
+  compareMode: boolean;
+  onToggleCompareMode: () => void;
 };
 
-export default function FilterBar({ filters, onChangeFilter, onClear }: Props) {
+export default function FilterBar({ filters, onChangeFilter, onClear, compareMode, onToggleCompareMode }: Props) {
   const trackedRepos = useAuthStore((state) => state.trackedRepos);
   const environments = useAwsStore((state) => state.environments);
   const [branchInput, setBranchInput] = useState(filters.branch);
@@ -91,6 +93,14 @@ export default function FilterBar({ filters, onChangeFilter, onClear }: Props) {
             Clear filters
           </button>
         )}
+
+        <button
+          type="button"
+          className={`dl-clear-btn dl-compare-toggle ${compareMode ? "dl-compare-toggle-active" : ""}`}
+          onClick={onToggleCompareMode}
+        >
+          {compareMode ? "Exit compare" : "Compare deployments"}
+        </button>
       </div>
 
       {/* Row 2: Branch input + date range */}

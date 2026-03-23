@@ -13,7 +13,7 @@ export async function connectAws(req: Request, res: Response, next: NextFunction
     }
 
     const body = awsService.awsConnectSchema.parse(req.body);
-    const data = await awsService.connectAwsCredentials(req.user.id, body);
+    const data = await awsService.connectAwsCredentials(req.user.id, body, req);
     return sendSuccess(res, data);
   } catch (error) {
     if (error instanceof Error && error.message === "AWS_INVALID_CREDENTIALS") {
@@ -48,7 +48,7 @@ export async function deleteAwsConnection(req: Request, res: Response, next: Nex
       throw new Error("Invalid credentials");
     }
 
-    const data = await awsService.disconnectAws(req.user.id);
+    const data = await awsService.disconnectAws(req.user.id, req);
     return sendSuccess(res, data);
   } catch (error) {
     return next(error);

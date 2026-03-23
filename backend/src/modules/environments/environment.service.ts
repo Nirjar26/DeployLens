@@ -1,5 +1,7 @@
 import { ListDeploymentGroupsCommand } from "@aws-sdk/client-codedeploy";
+import { Request } from "express";
 import { getCodeDeployClient } from "../../utils/awsClient";
+import { writeAuditLog } from "../../utils/auditLog";
 
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -10,7 +12,7 @@ export async function createOrUpdateEnvironment(userId: string, input: {
   codedeploy_group: string;
   display_name: string;
   color_tag: string;
-}) {
+}, req?: Request) {
   const repository = await prisma.repository.findFirst({
     where: {
       id: input.repository_id,
@@ -45,7 +47,7 @@ export async function createOrUpdateEnvironment(userId: string, input: {
     throw new Error("AWS_UNREACHABLE");
   }
 
-  return prisma.environment.upsert({
+  const environment = await prisma.environment.upsert({
     where: {
       user_id_codedeploy_app_codedeploy_group: {
         user_id: userId,
@@ -67,6 +69,22 @@ export async function createOrUpdateEnvironment(userId: string, input: {
       color_tag: input.color_tag,
     },
   });
+
+  await writeAuditLog({
+    userId,
+    action: "environment.created",
+    entityType: "environment",
+    entityId: environment.id,
+    metadata: {
+      display_name: environment.display_name,
+      repository_id: environment.repository_id,
+      codedeploy_app: environment.codedeploy_app,
+      codedeploy_group: environment.codedeploy_group,
+    },
+    req,
+  });
+
+  return environment;
 }
 
 export async function listEnvironments(userId: string) {
@@ -99,7 +117,7 @@ export async function updateEnvironment(userId: string, id: string, body: {
   color_tag?: string;
   codedeploy_app?: unknown;
   codedeploy_group?: unknown;
-}) {
+}, req?: Request) {
   if (body.codedeploy_app !== undefined || body.codedeploy_group !== undefined) {
     throw new Error("IMMUTABLE_FIELDS");
   }
@@ -116,21 +134,37 @@ export async function updateEnvironment(userId: string, id: string, body: {
     throw new Error("FORBIDDEN");
   }
 
-  return prisma.environment.update({
+  const updated = await prisma.environment.update({
     where: { id },
     data: {
       ...(body.display_name !== undefined ? { display_name: body.display_name } : {}),
       ...(body.color_tag !== undefined ? { color_tag: body.color_tag } : {}),
     },
   });
+
+  await writeAuditLog({
+    userId,
+    action: "environment.updated",
+    entityType: "environment",
+    entityId: updated.id,
+    metadata: {
+      display_name: updated.display_name,
+      color_tag: updated.color_tag,
+    },
+    req,
+  });
+
+  return updated;
 }
 
-export async function deleteEnvironment(userId: string, id: string) {
+export async function deleteEnvironment(userId: string, id: string, req?: Request) {
   const existing = await prisma.environment.findUnique({
     where: { id },
     select: {
       id: true,
       user_id: true,
+      display_name: true,
+      color_tag: true,
     },
   });
 
@@ -145,6 +179,18 @@ export async function deleteEnvironment(userId: string, id: string) {
     }),
     prisma.environment.delete({ where: { id } }),
   ]);
+
+  await writeAuditLog({
+    userId,
+    action: "environment.deleted",
+    entityType: "environment",
+    entityId: existing.id,
+    metadata: {
+      display_name: existing.display_name,
+      color_tag: existing.color_tag,
+    },
+    req,
+  });
 
   return { success: true };
 }

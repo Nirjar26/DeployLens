@@ -991,6 +991,31 @@ a:hover {
 .dl-dashboard-topbar { display: flex; justify-content: space-between; align-items: center }
 .dl-page-title { margin: 0; font-size: 28px; font-weight: 700; color: #0f172a }
 
+.dl-connection-status {
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #64748b;
+}
+.dl-connection-status:disabled { cursor: default }
+.dl-connection-status-disconnected:not(:disabled) { cursor: pointer }
+.dl-connection-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #22c55e;
+  display: inline-block;
+}
+.dl-connection-status-connecting .dl-connection-dot {
+  background: #f59e0b;
+  animation: dl-pulse 1.2s infinite;
+}
+.dl-connection-status-disconnected .dl-connection-dot { background: #ef4444 }
+
 /* ═══════════════════════════════════════
    STATS ROW
    ═══════════════════════════════════════ */
@@ -1368,6 +1393,304 @@ a:hover {
 .settings-list-item { border: 1px solid #e5e7eb; border-radius: 10px; padding: 0.55rem; display: flex; justify-content: space-between; gap: 0.55rem }
 .settings-list-item p { margin: 0.2rem 0 0; color: #6b7280; font-size: 0.82rem }
 
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 200px;
+  gap: 0.6rem;
+}
+
+.settings-form-stack {
+  grid-template-columns: 1fr;
+}
+
+.settings-success {
+  margin: 0;
+  color: #166534;
+  font-size: 0.86rem;
+}
+
+.settings-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.86rem;
+}
+
+.settings-danger-zone {
+  border-color: #fecaca;
+  background: #fff9f9;
+}
+
+.settings-audit-filters {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 0.55rem;
+}
+
+.settings-audit-item {
+  align-items: center;
+}
+
+.analytics-main {
+  gap: 16px;
+}
+
+.analytics-range-toggle {
+  display: inline-flex;
+  gap: 6px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.analytics-range-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.analytics-range-btn-active {
+  background: #0f172a;
+  color: #fff;
+}
+
+.analytics-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.analytics-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.analytics-card span {
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #64748b;
+  letter-spacing: 0.4px;
+}
+
+.analytics-card strong {
+  font-size: 21px;
+  color: #0f172a;
+}
+
+.analytics-panel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.analytics-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.analytics-panel-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.analytics-segmented {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 2px;
+  display: inline-flex;
+}
+
+.analytics-segmented button {
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #64748b;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.analytics-segmented button.active {
+  background: #0f172a;
+  color: #fff;
+}
+
+.analytics-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.analytics-empty {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.analytics-chart-wrap {
+  width: 100%;
+  height: 260px;
+}
+
+.analytics-table-wrap {
+  overflow: auto;
+}
+
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.analytics-table th,
+.analytics-table td {
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+  padding: 10px;
+  font-size: 13px;
+}
+
+.analytics-table th {
+  color: #64748b;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.analytics-table th button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  padding: 0;
+}
+
+.analytics-env-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.analytics-env-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.analytics-repo-select {
+  height: 34px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  padding: 0 10px;
+}
+
+.mttr-panel {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.mttr-label {
+  margin: 0;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-size: 11px;
+}
+
+.mttr-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dl-compare-toggle {
+  margin-left: 0;
+}
+
+.dl-compare-toggle-active {
+  background: #0f172a;
+  color: #fff;
+  border-color: #0f172a;
+}
+
+.dl-compare-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13px;
+  color: #475569;
+}
+
+.dl-compare-modal {
+  width: 780px;
+}
+
+.dl-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.dl-compare-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.dl-compare-card h4,
+.dl-compare-card p {
+  margin: 0 0 6px;
+}
+
+.dl-compare-diff {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.dl-compare-diff p {
+  margin: 0 0 6px;
+}
+
+.dl-compare-commit-list {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.dl-compare-commit-list h4 {
+  margin: 0 0 8px;
+}
+
+.dl-compare-commit-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
 .repo-toast-success { position: fixed; right: 1rem; bottom: 4.5rem; background: #14532d; color: #fff; border-radius: 10px; padding: 0.7rem 0.9rem; font-size: 0.85rem }
 
 /* ═══════════════════════════════════════
@@ -1394,4 +1717,10 @@ a:hover {
   .dl-modal-overview-grid { grid-template-columns: 1fr }
   .dl-swimlanes { flex-direction: column }
   .dl-env-column { width: 100% }
+  .analytics-overview-grid { grid-template-columns: 1fr 1fr }
+  .analytics-two-col { grid-template-columns: 1fr }
+  .mttr-panel { grid-template-columns: 1fr }
+  .settings-form-grid { grid-template-columns: 1fr }
+  .settings-audit-filters { grid-template-columns: 1fr 1fr }
+  .dl-compare-grid { grid-template-columns: 1fr }
 }

@@ -84,7 +84,9 @@ async function pollUser(userId: string): Promise<void> {
       }
 
       if (synced.previousUnifiedStatus !== synced.deployment.unified_status) {
-        emitDeploymentUpdate(synced.deployment.id);
+        void emitDeploymentUpdate(synced.deployment.id, false).catch((err) => {
+          console.error("Failed to emit deployment socket update after CodeDeploy poll:", err);
+        });
       }
     }
   }

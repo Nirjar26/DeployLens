@@ -1,4 +1,5 @@
 import axios from "axios";
+import { reconnectSocket } from "./socket";
 
 let accessToken: string | null = null;
 
@@ -32,5 +33,6 @@ export async function refreshAccessToken(): Promise<string> {
   }
 
   setAccessToken(token);
+  reconnectSocket(token);
   return token;
 }

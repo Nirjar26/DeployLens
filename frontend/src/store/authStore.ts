@@ -24,6 +24,7 @@ type AuthState = {
   setUser: (user: AuthUser, accessToken: string) => void;
   setGithubConnected: (username: string | null) => void;
   setTrackedRepos: (repos: TrackedRepo[]) => void;
+  updateUser: (partial: Partial<AuthUser>) => void;
   fetchTrackedRepos: () => Promise<void>;
   clearAuth: () => void;
   login: (email: string, password: string) => Promise<void>;
@@ -50,6 +51,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
   setTrackedRepos: (repos) => {
     set({ trackedRepos: repos });
+  },
+  updateUser: (partial) => {
+    set((state) => ({
+      user: state.user ? { ...state.user, ...partial } : state.user,
+    }));
   },
   fetchTrackedRepos: async () => {
     set({ isLoadingRepos: true });

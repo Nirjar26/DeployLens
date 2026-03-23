@@ -144,6 +144,7 @@ async function processSnsNotificationMessage(message: any) {
       is_rollback: true,
     },
   });
+  let isNewDeployment = false;
 
   if (!deployment) {
     const environment = await prisma.environment.findFirst({
@@ -180,6 +181,7 @@ async function processSnsNotificationMessage(message: any) {
         is_rollback: true,
       },
     });
+    isNewDeployment = true;
   }
 
   const updated = await prisma.deployment.update({
@@ -206,7 +208,9 @@ async function processSnsNotificationMessage(message: any) {
     await getAndStoreDeploymentEvents(updated.user_id, updated.codedeploy_id);
   }
 
-  emitDeploymentUpdate(updated.id);
+  void emitDeploymentUpdate(updated.id, isNewDeployment).catch((err) => {
+    console.error("Failed to emit deployment socket update after AWS webhook:", err);
+  });
   runAggregator(updated.user_id).catch((err) => {
     console.error("Aggregator failed after AWS webhook:", err);
   });
@@ -256,6 +260,11 @@ export async function processGithubWebhook(rawBody: Buffer, signatureHeader: str
     ? Math.max(0, Math.floor((new Date(finishedAt).getTime() - new Date(startedAt).getTime()) / 1000))
     : null;
 
+  const isNewDeployment = !(await prisma.deployment.findUnique({
+    where: { github_run_id: String(workflowRun.id) },
+    select: { id: true },
+  }));
+
   const deployment = await upsertWorkflowRunFromWebhook({
     repoFullName: payload.repository?.full_name,
     githubRunId: String(workflowRun.id),
@@ -274,7 +283,9 @@ export async function processGithubWebhook(rawBody: Buffer, signatureHeader: str
     return { statusCode: 200, body: { message: "repo not tracked" } };
   }
 
-  emitDeploymentUpdate(deployment.id);
+  void emitDeploymentUpdate(deployment.id, isNewDeployment).catch((err) => {
+    console.error("Failed to emit deployment socket update after GitHub webhook:", err);
+  });
   const deploymentOwner = await prisma.deployment.findUnique({
     where: { id: deployment.id },
     select: { user_id: true },

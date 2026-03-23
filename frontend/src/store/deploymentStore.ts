@@ -108,6 +108,7 @@ type DeploymentStore = {
   isLoadingStats: boolean;
   activeView: "pipeline" | "environments";
   modalOpen: boolean;
+  statsNeedRefresh: boolean;
   fetchDeployments: () => Promise<void>;
   fetchDeploymentDetail: (id: string) => Promise<void>;
   fetchStats: () => Promise<void>;
@@ -121,7 +122,10 @@ type DeploymentStore = {
   closeModal: () => void;
   setView: (view: "pipeline" | "environments") => void;
   setFiltersFromQuery: (partial: Partial<DeploymentFilters>) => void;
+  addDeployment: (deployment: DeploymentRow) => void;
   updateDeployment: (id: string, data: Partial<DeploymentRow>) => void;
+  triggerStatsRefresh: () => void;
+  clearStatsRefresh: () => void;
 };
 
 const defaultFilters: DeploymentFilters = {
@@ -148,6 +152,7 @@ export const useDeploymentStore = create<DeploymentStore>((set, get) => ({
   isLoadingStats: false,
   activeView: "pipeline",
   modalOpen: false,
+  statsNeedRefresh: false,
 
   fetchDeployments: async () => {
     set({ isLoading: true });
@@ -241,9 +246,26 @@ export const useDeploymentStore = create<DeploymentStore>((set, get) => ({
     }));
   },
 
+  addDeployment: (deployment) => {
+    set((state) => {
+      if (state.deployments.some((item) => item.id === deployment.id)) {
+        return state;
+      }
+
+      const next = [deployment, ...state.deployments];
+      const limited = next.length > state.filters.limit ? next.slice(0, state.filters.limit) : next;
+
+      return {
+        deployments: limited,
+      };
+    });
+  },
+
   updateDeployment: (id, data) => {
     set((state) => ({
-      deployments: state.deployments.map((item) => (item.id === id ? { ...item, ...data } : item)),
+      deployments: state.deployments.some((item) => item.id === id)
+        ? state.deployments.map((item) => (item.id === id ? { ...item, ...data } : item))
+        : state.deployments,
       selectedDeployment: state.selectedDeployment?.id === id
         ? { ...state.selectedDeployment, ...data }
         : state.selectedDeployment,
@@ -254,5 +276,13 @@ export const useDeploymentStore = create<DeploymentStore>((set, get) => ({
           : entry.latest_deployment,
       })),
     }));
+  },
+
+  triggerStatsRefresh: () => {
+    set({ statsNeedRefresh: true });
+  },
+
+  clearStatsRefresh: () => {
+    set({ statsNeedRefresh: false });
   },
 }));

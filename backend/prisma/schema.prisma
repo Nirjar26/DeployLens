@@ -29,9 +29,27 @@ model User {
   repositories    Repository[]
   environments    Environment[]
   deployments     Deployment[]
+  audit_logs      AuditLog[]
   initiated_rollbacks RollbackLog[]  @relation("RollbackInitiator")
 
   @@map("users")
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  user_id     String
+  action      String
+  entity_type String
+  entity_id   String?
+  metadata    Json?
+  ip_address  String?
+  user_agent  String?
+  created_at  DateTime @default(now())
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([created_at])
+  @@map("audit_log")
 }
 
 model RefreshToken {

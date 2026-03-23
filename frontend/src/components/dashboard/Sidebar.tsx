@@ -51,6 +51,17 @@ function SettingsIcon() {
   );
 }
 
+function AnalyticsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M2.5 13.5H13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+      <rect x="3" y="8" width="2.2" height="4" rx="0.8" fill="currentColor" />
+      <rect x="6.9" y="5.5" width="2.2" height="6.5" rx="0.8" fill="currentColor" />
+      <rect x="10.8" y="3" width="2.2" height="9" rx="0.8" fill="currentColor" />
+    </svg>
+  );
+}
+
 function LogoutIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -83,6 +94,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
   const profileRef = useRef<HTMLButtonElement>(null);
 
   const isDashboard = location.pathname === "/dashboard";
+  const isAnalytics = location.pathname === "/analytics";
   const isSettings = location.pathname === "/settings";
   const userInitial = user?.name?.charAt(0).toUpperCase() ?? "?";
 
@@ -165,6 +177,14 @@ export default function Sidebar({ onLogout }: SidebarProps) {
         >
           <DashboardIcon active={isDashboard} />
           <span>Dashboard</span>
+        </Link>
+
+        <Link
+          to="/analytics"
+          className={`dl-sidebar-nav-item ${isAnalytics ? "dl-sidebar-nav-item-active" : ""}`}
+        >
+          <AnalyticsIcon />
+          <span>Analytics</span>
         </Link>
 
         {isDashboard && (

@@ -53,6 +53,18 @@ export type EnvironmentItem = {
   created_at: string;
 };
 
+export type AnalyticsRange = "7d" | "30d" | "90d";
+
+export type AuditLogEntry = {
+  id: string;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  metadata: Record<string, unknown> | null;
+  ip_address: string | null;
+  created_at: string;
+};
+
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
 const api = axios.create({
@@ -133,6 +145,14 @@ export const github = {
     });
 
     return response.data?.data;
+  },
+  async rerunWorkflow(runId: string) {
+    const response = await api.post(`/api/github/runs/${runId}/rerun`);
+    return response.data?.data as { success: boolean; message: string };
+  },
+  async disconnect() {
+    const response = await api.delete("/api/github/connection");
+    return response.data?.data as { success: boolean };
   },
   connectUrl() {
     const accessToken = getAccessToken();
@@ -255,5 +275,79 @@ export const deployments = {
   async getEnvironmentLatest() {
     const response = await api.get("/api/deployments/environments/latest");
     return response.data?.data;
+  },
+  async compare(a: string, b: string) {
+    const response = await api.get("/api/deployments/compare", { params: { a, b } });
+    return response.data?.data;
+  },
+  async promote(id: string, target_environment_id: string) {
+    const response = await api.post(`/api/deployments/${id}/promote`, { target_environment_id });
+    return response.data?.data as { success: boolean; new_deployment_id: string; message: string };
+  },
+};
+
+export const analytics = {
+  async getOverview(range: AnalyticsRange = "30d") {
+    const response = await api.get("/api/analytics/overview", { params: { range } });
+    return response.data?.data;
+  },
+  async getFrequency(range: AnalyticsRange = "30d", group_by: "day" | "week" = "day") {
+    const response = await api.get("/api/analytics/frequency", { params: { range, group_by } });
+    return response.data?.data;
+  },
+  async getDurationTrend(range: AnalyticsRange = "30d", repo?: string) {
+    const response = await api.get("/api/analytics/duration-trend", { params: { range, ...(repo ? { repo } : {}) } });
+    return response.data?.data;
+  },
+  async getByRepo(range: AnalyticsRange = "30d") {
+    const response = await api.get("/api/analytics/by-repo", { params: { range } });
+    return response.data?.data;
+  },
+  async getByEnvironment(range: AnalyticsRange = "30d") {
+    const response = await api.get("/api/analytics/by-environment", { params: { range } });
+    return response.data?.data;
+  },
+  async getMttr(range: AnalyticsRange = "30d") {
+    const response = await api.get("/api/analytics/mttr", { params: { range } });
+    return response.data?.data;
+  },
+};
+
+export const audit = {
+  async list(params?: {
+    action?: string;
+    entity_type?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const response = await api.get("/api/audit", { params });
+    return response.data?.data as {
+      entries: AuditLogEntry[];
+      pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+        hasNext: boolean;
+        hasPrev: boolean;
+      };
+    };
+  },
+};
+
+export const account = {
+  async updateProfile(name: string) {
+    const response = await api.put("/api/account/profile", { name });
+    return response.data?.data as { id: string; name: string; email: string };
+  },
+  async updatePassword(payload: { currentPassword: string; newPassword: string; confirmPassword: string }) {
+    const response = await api.put("/api/account/password", payload);
+    return response.data?.data as { accessToken: string; refreshToken: string };
+  },
+  async deleteAccount(password: string) {
+    const response = await api.delete("/api/account", { data: { password } });
+    return response.data?.data as { success: boolean };
   },
 };

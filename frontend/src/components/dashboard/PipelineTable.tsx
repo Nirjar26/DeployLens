@@ -13,6 +13,10 @@ type Props = {
   onClearFilters: () => void;
   onSetPage: (page: number) => void;
   onSetLimit: (limit: number) => void;
+  compareMode: boolean;
+  compareSelection: string[];
+  onToggleCompareSelection: (id: string) => void;
+  onOpenCompare: () => void;
 };
 
 export default function PipelineTable({
@@ -24,6 +28,10 @@ export default function PipelineTable({
   onClearFilters,
   onSetPage,
   onSetLimit,
+  compareMode,
+  compareSelection,
+  onToggleCompareSelection,
+  onOpenCompare,
 }: Props) {
   const [jumpPage, setJumpPage] = useState("");
 
@@ -46,9 +54,24 @@ export default function PipelineTable({
 
   return (
     <div className="dl-pipeline-card">
+      {compareMode && (
+        <div className="dl-compare-banner">
+          <span>Select exactly two deployments to compare ({compareSelection.length}/2 selected)</span>
+          <button
+            type="button"
+            className="dl-view-btn"
+            disabled={compareSelection.length !== 2}
+            onClick={onOpenCompare}
+          >
+            Compare now
+          </button>
+        </div>
+      )}
+
       <table className="dl-pipeline-table">
         <thead>
           <tr>
+            {compareMode ? <th style={{ width: 56 }}>Pick</th> : null}
             <th style={{ width: 130 }}>Status</th>
             <th>Repo</th>
             <th>Branch / Commit</th>
@@ -61,7 +84,14 @@ export default function PipelineTable({
         </thead>
         <tbody>
           {rows.map((row) => (
-            <DeploymentRow key={row.id} deployment={row} onOpen={onOpen} />
+            <DeploymentRow
+              key={row.id}
+              deployment={row}
+              onOpen={onOpen}
+              compareMode={compareMode}
+              isSelectedForCompare={compareSelection.includes(row.id)}
+              onToggleCompareSelection={onToggleCompareSelection}
+            />
           ))}
         </tbody>
       </table>

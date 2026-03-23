@@ -87,6 +87,13 @@ type DeploymentSeedInput = {
   durationSeconds: number | null;
 };
 
+type AuditSeedInput = {
+  userId: string;
+  githubUsername: string;
+  repoIds: Record<RepoKey, string>;
+  envIds: Record<string, string>;
+};
+
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -246,6 +253,112 @@ async function seedLifecycleForDeployment(input: {
       message: i === 2 ? input.failureMessage : undefined,
     });
   }
+}
+
+async function seedAuditLogs(input: AuditSeedInput) {
+  const now = new Date();
+
+  await prisma.auditLog.deleteMany({ where: { user_id: input.userId } });
+
+  const deployments = await prisma.deployment.findMany({
+    where: { user_id: input.userId },
+    select: {
+      id: true,
+      repository_id: true,
+      environment_id: true,
+      unified_status: true,
+      created_at: true,
+      commit_sha: true,
+      github_run_id: true,
+    },
+    orderBy: { created_at: "asc" },
+  });
+
+  const rows: Array<{
+    user_id: string;
+    action: string;
+    entity_type: string;
+    entity_id: string | null;
+    metadata: Record<string, unknown> | null;
+    ip_address: string;
+    user_agent: string;
+    created_at: Date;
+  }> = [];
+
+  function push(
+    action: string,
+    entityType: string,
+    entityId: string | null,
+    createdAt: Date,
+    metadata: Record<string, unknown> | null,
+  ) {
+    rows.push({
+      user_id: input.userId,
+      action,
+      entity_type: entityType,
+      entity_id: entityId,
+      metadata,
+      ip_address: `192.168.1.${randomInt(10, 240)}`,
+      user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      created_at: createdAt,
+    });
+  }
+
+  // Baseline account/integration actions.
+  push("auth.login", "auth", null, daysAgo(30, 9), { method: "email_password" });
+  push("github.connected", "github_connection", null, daysAgo(30, 9), { username: input.githubUsername });
+  push("aws.connected", "aws_connection", null, daysAgo(29, 10), { region: "us-east-1" });
+
+  push("repository.tracked", "repository", input.repoIds.api, daysAgo(29, 11), { full_name: "acme-corp/api-service" });
+  push("repository.tracked", "repository", input.repoIds.web, daysAgo(29, 11), { full_name: "acme-corp/web-frontend" });
+  push("repository.tracked", "repository", input.repoIds.worker, daysAgo(29, 11), { full_name: "acme-corp/worker-service" });
+
+  const envEntries = Object.entries(input.envIds)
+    .filter(([, id]) => Boolean(id))
+    .slice(0, 6);
+
+  envEntries.forEach(([key, id], idx) => {
+    push("environment.created", "environment", id, daysAgo(28, 10 + (idx % 6)), { key });
+  });
+
+  // Deployment-related audit noise spread across the timeline for realistic log pages.
+  for (let i = 0; i < deployments.length; i += 1) {
+    const dep = deployments[i];
+    const base = new Date(dep.created_at.getTime() + randomInt(30, 220) * 1000);
+
+    push("deployment.synced", "deployment", dep.id, base, {
+      github_run_id: dep.github_run_id,
+      status: dep.unified_status,
+    });
+
+    if (dep.unified_status === "failed") {
+      push("deployment.rerun_requested", "deployment", dep.id, new Date(base.getTime() + 60_000), {
+        reason: "Auto retry from failed status",
+      });
+    }
+
+    if (dep.unified_status === "success" && i % 7 === 0) {
+      push("deployment.promoted", "deployment", dep.id, new Date(base.getTime() + 90_000), {
+        target_environment: "production",
+        commit_sha: dep.commit_sha,
+      });
+    }
+
+    if (i % 9 === 0) {
+      push("deployment.compared", "deployment", dep.id, new Date(base.getTime() + 120_000), {
+        compare_with_index: Math.max(0, i - 1),
+      });
+    }
+  }
+
+  // Recent account/settings actions.
+  push("account.profile_updated", "account", input.userId, daysAgo(2, 13), { fields: ["name"] });
+  push("account.password_updated", "account", input.userId, daysAgo(1, 15), { rotate_tokens: true });
+  push("auth.login", "auth", null, new Date(now.getTime() - 2 * 60 * 60 * 1000), { method: "email_password" });
+
+  await prisma.auditLog.createMany({
+    data: rows,
+  });
 }
 
 async function seedUserData(config: UserSeedConfig, passwordHash: string) {
@@ -820,6 +933,17 @@ async function seedUserData(config: UserSeedConfig, passwordHash: string) {
     statuses: ["Succeeded", "Succeeded", "Succeeded", "Succeeded", "Succeeded"],
     durations: [8, 49, 21, 13, 29],
   });
+
+  await seedAuditLogs({
+    userId: user.id,
+    githubUsername: config.githubUsername,
+    repoIds: {
+      api: apiRepo.id,
+      web: webRepo.id,
+      worker: workerRepo.id,
+    },
+    envIds: envs,
+  });
 }
 
 async function main() {
@@ -879,6 +1003,7 @@ async function main() {
   console.log("  12 environments");
   console.log("  80 deployments");
   console.log("  ~60 deployment events");
+  console.log("  ~200 audit logs");
   console.log("\nRun: npx prisma studio");
   console.log("to inspect the seeded data.");
   console.log("=============================\n");

@@ -140,7 +140,9 @@ export async function mergeDeploymentRows(githubRow: MergeCandidate, codedeployR
     unifiedStatus: updatedPrimary.unified_status,
   }));
 
-  emitDeploymentUpdate(updatedPrimary.id);
+  void emitDeploymentUpdate(updatedPrimary.id, false).catch((err) => {
+    console.error("Failed to emit deployment socket update after merge:", err);
+  });
 
   return updatedPrimary;
 }
@@ -243,7 +245,9 @@ async function processOrphanedGithubRuns(userId: string): Promise<number> {
       data: { unified_status: "success" },
     });
 
-    emitDeploymentUpdate(row.id);
+    void emitDeploymentUpdate(row.id, false).catch((err) => {
+      console.error("Failed to emit deployment socket update for orphaned GitHub run:", err);
+    });
   }
 
   return orphaned.length;
@@ -290,7 +294,9 @@ async function correctStaleRunningRows(userId: string): Promise<number> {
           });
 
           corrected += 1;
-          emitDeploymentUpdate(row.id);
+          void emitDeploymentUpdate(row.id, false).catch((err) => {
+            console.error("Failed to emit deployment socket update for stale CodeDeploy row:", err);
+          });
         }
 
         continue;
@@ -318,7 +324,9 @@ async function correctStaleRunningRows(userId: string): Promise<number> {
           });
 
           corrected += 1;
-          emitDeploymentUpdate(row.id);
+          void emitDeploymentUpdate(row.id, false).catch((err) => {
+            console.error("Failed to emit deployment socket update for stale GitHub row:", err);
+          });
         }
       }
     } catch {

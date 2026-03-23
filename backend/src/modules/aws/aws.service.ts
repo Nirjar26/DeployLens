@@ -7,8 +7,10 @@ import {
   ListDeploymentsCommand,
 } from "@aws-sdk/client-codedeploy";
 import { GetCallerIdentityCommand } from "@aws-sdk/client-sts";
+import { Request } from "express";
 import { z } from "zod";
 import { encrypt } from "../../utils/encryption";
+import { writeAuditLog } from "../../utils/auditLog";
 import { calculateUnifiedStatus } from "../../utils/unifiedStatus";
 import { getCodeDeployClient, getSTSClient } from "../../utils/awsClient";
 import { AwsConnectInput, NormalizedCodeDeployDeployment, NormalizedDeploymentEvent } from "./aws.types";
@@ -103,7 +105,7 @@ export async function assertAwsConnected(userId: string): Promise<void> {
   }
 }
 
-export async function connectAwsCredentials(userId: string, input: AwsConnectInput) {
+export async function connectAwsCredentials(userId: string, input: AwsConnectInput, req?: Request) {
   const sts = await getSTSClient(input.accessKeyId, input.secretAccessKey, input.region);
 
   let identity;
@@ -118,7 +120,7 @@ export async function connectAwsCredentials(userId: string, input: AwsConnectInp
     throw new Error("AWS_INVALID_CREDENTIALS");
   }
 
-  await prisma.awsConnection.upsert({
+  const connection = await prisma.awsConnection.upsert({
     where: { user_id: userId },
     update: {
       access_key_id_enc: encrypt(input.accessKeyId),
@@ -136,6 +138,19 @@ export async function connectAwsCredentials(userId: string, input: AwsConnectInp
       account_id: accountId,
       account_alias: input.accountAlias ?? null,
     },
+  });
+
+  await writeAuditLog({
+    userId,
+    action: "aws.connected",
+    entityType: "aws_connection",
+    entityId: connection.id,
+    metadata: {
+      account_id: accountId,
+      region: input.region,
+      account_alias: input.accountAlias ?? null,
+    },
+    req,
   });
 
   return {
@@ -170,10 +185,35 @@ export async function getAwsStatus(userId: string) {
   };
 }
 
-export async function disconnectAws(userId: string) {
+export async function disconnectAws(userId: string, req?: Request) {
+  const existing = await prisma.awsConnection.findUnique({
+    where: { user_id: userId },
+    select: {
+      id: true,
+      account_id: true,
+      region: true,
+      account_alias: true,
+    },
+  });
+
   await prisma.awsConnection.deleteMany({
     where: { user_id: userId },
   });
+
+  if (existing) {
+    await writeAuditLog({
+      userId,
+      action: "aws.disconnected",
+      entityType: "aws_connection",
+      entityId: existing.id,
+      metadata: {
+        account_id: existing.account_id,
+        region: existing.region,
+        account_alias: existing.account_alias,
+      },
+      req,
+    });
+  }
 
   return { success: true };
 }

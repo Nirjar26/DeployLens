@@ -1,9 +1,11 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import axios from "axios";
+import { Request } from "express";
 import { z } from "zod";
 import { decrypt, encrypt } from "../../utils/encryption";
 import { createGithubClient } from "../../utils/githubClient";
+import { writeAuditLog } from "../../utils/auditLog";
 import { calculateUnifiedStatus } from "../../utils/unifiedStatus";
 import {
   GithubEmail,
@@ -217,14 +219,14 @@ export function buildGithubOAuthUrl(userId: string) {
   const params = new URLSearchParams({
     client_id: GITHUB_CLIENT_ID,
     redirect_uri: GITHUB_REDIRECT_URI,
-    scope: "repo read:user user:email",
+    scope: "repo workflow read:user user:email",
     state,
   });
 
   return `https://github.com/login/oauth/authorize?${params.toString()}`;
 }
 
-export async function exchangeGithubOAuthCode(code: string, state: string) {
+export async function exchangeGithubOAuthCode(code: string, state: string, req?: Request) {
   const { GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_REDIRECT_URI, FRONTEND_URL, JWT_SECRET } = getGithubEnv();
 
   let payload: { userId: string };
@@ -267,7 +269,7 @@ export async function exchangeGithubOAuthCode(code: string, state: string) {
     email = primary?.email ?? null;
   }
 
-  await prisma.githubConnection.upsert({
+  const connection = await prisma.githubConnection.upsert({
     where: { user_id: payload.userId },
     update: {
       access_token_enc: encrypt(accessToken),
@@ -283,6 +285,18 @@ export async function exchangeGithubOAuthCode(code: string, state: string) {
       github_username: profile.login,
       github_email: email,
     },
+  });
+
+  await writeAuditLog({
+    userId: payload.userId,
+    action: "github.connected",
+    entityType: "github_connection",
+    entityId: connection.id,
+    metadata: {
+      github_username: profile.login,
+      github_user_id: String(profile.id),
+    },
+    req,
   });
 
   return `${FRONTEND_URL}/onboarding/repos`;
@@ -302,6 +316,11 @@ async function getUserGithubToken(userId: string) {
     token: decrypt(connection.access_token_enc),
     username: connection.github_username,
   };
+}
+
+export async function getGithubAccessTokenForUser(userId: string): Promise<string> {
+  const { token } = await getUserGithubToken(userId);
+  return token;
 }
 
 export async function getGithubConnectionStatus(userId: string) {
@@ -362,7 +381,7 @@ export async function fetchGithubRepos(userId: string): Promise<NormalizedRepo[]
   return normalized;
 }
 
-export async function trackRepos(userId: string, input: TrackReposInput) {
+export async function trackRepos(userId: string, input: TrackReposInput, req?: Request) {
   const tracked = [];
 
   for (const repo of input.repos) {
@@ -388,6 +407,18 @@ export async function trackRepos(userId: string, input: TrackReposInput) {
         default_branch: repo.default_branch,
         webhook_secret: crypto.randomBytes(20).toString("hex"),
       },
+    });
+
+    await writeAuditLog({
+      userId,
+      action: "repo.tracked",
+      entityType: "repository",
+      entityId: saved.id,
+      metadata: {
+        full_name: saved.full_name,
+        github_repo_id: saved.github_repo_id,
+      },
+      req,
     });
 
     tracked.push(saved);
@@ -429,20 +460,71 @@ export async function getTrackedRepos(userId: string) {
   }));
 }
 
-export async function untrackRepo(userId: string, repoId: string) {
-  const updated = await prisma.repository.updateMany({
+export async function untrackRepo(userId: string, repoId: string, req?: Request) {
+  const existing = await prisma.repository.findFirst({
     where: {
       id: repoId,
       user_id: userId,
     },
+    select: {
+      id: true,
+      full_name: true,
+      is_active: true,
+    },
+  });
+
+  if (!existing) {
+    throw new Error("Repository not found or no access");
+  }
+
+  await prisma.repository.update({
+    where: { id: existing.id },
     data: {
       is_active: false,
     },
   });
 
-  if (updated.count === 0) {
-    throw new Error("Repository not found or no access");
+  await writeAuditLog({
+    userId,
+    action: "repo.untracked",
+    entityType: "repository",
+    entityId: existing.id,
+    metadata: {
+      full_name: existing.full_name,
+    },
+    req,
+  });
+
+  return { success: true };
+}
+
+export async function disconnectGithub(userId: string, req?: Request) {
+  const existing = await prisma.githubConnection.findUnique({
+    where: { user_id: userId },
+    select: {
+      id: true,
+      github_username: true,
+    },
+  });
+
+  await prisma.githubConnection.deleteMany({
+    where: { user_id: userId },
+  });
+
+  if (existing) {
+    await writeAuditLog({
+      userId,
+      action: "github.disconnected",
+      entityType: "github_connection",
+      entityId: existing.id,
+      metadata: {
+        github_username: existing.github_username,
+      },
+      req,
+    });
   }
+
+  clearRepoCacheForUser(userId);
 
   return { success: true };
 }
@@ -570,4 +652,91 @@ export async function upsertWorkflowRunFromWebhook(payload: {
   });
 
   return deployment;
+}
+
+export async function rerunWorkflowRun(userId: string, runId: string, req?: Request) {
+  const deployment = await prisma.deployment.findFirst({
+    where: {
+      github_run_id: String(runId),
+      user_id: userId,
+    },
+    include: {
+      repository: {
+        select: {
+          id: true,
+          full_name: true,
+          owner: true,
+          name: true,
+        },
+      },
+      environment: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  if (!deployment) {
+    throw new Error("DEPLOYMENT_NOT_FOUND");
+  }
+
+  if (deployment.github_status !== "failure") {
+    throw new Error("RUN_NOT_FAILED");
+  }
+
+  const token = await getGithubAccessTokenForUser(userId);
+  const github = createGithubClient(token, userId);
+
+  try {
+    await github.post(`/repos/${deployment.repository.owner}/${deployment.repository.name}/actions/runs/${runId}/rerun`);
+  } catch (error: any) {
+    const status = error?.response?.status as number | undefined;
+    if (status === 403) {
+      throw new Error("GITHUB_FORBIDDEN");
+    }
+
+    throw new Error("GITHUB_RERUN_FAILED");
+  }
+
+  const created = await prisma.deployment.create({
+    data: {
+      user_id: userId,
+      repository_id: deployment.repository_id,
+      environment_id: deployment.environment_id,
+      commit_sha: deployment.commit_sha,
+      branch: deployment.branch,
+      commit_message: deployment.commit_message,
+      triggered_by: userId,
+      github_run_id: null,
+      github_status: "queued",
+      github_run_url: deployment.github_run_url,
+      codedeploy_id: null,
+      codedeploy_status: null,
+      unified_status: "pending",
+      is_rollback: false,
+      started_at: null,
+      finished_at: null,
+      duration_seconds: null,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  await writeAuditLog({
+    userId,
+    action: "deployment.rerun_triggered",
+    entityType: "deployment",
+    entityId: created.id,
+    metadata: {
+      original_run_id: String(runId),
+      repo: deployment.repository.full_name,
+    },
+    req,
+  });
+
+  return {
+    deploymentId: created.id,
+  };
 }

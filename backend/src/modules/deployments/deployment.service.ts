@@ -1,4 +1,9 @@
 import { UnifiedStatus } from "@prisma/client";
+import { CreateDeploymentCommand, GetDeploymentCommand } from "@aws-sdk/client-codedeploy";
+import { getCodeDeployClient } from "../../utils/awsClient";
+import { writeAuditLog } from "../../utils/auditLog";
+import { createGithubClient } from "../../utils/githubClient";
+import { getGithubAccessTokenForUser } from "../github/github.service";
 
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
@@ -376,5 +381,200 @@ export async function getDeploymentStats(userId: string) {
     running_now: runningNow,
     success_rate_7d: successRate7d,
     avg_duration_7d: avgDuration7d,
+  };
+}
+
+export async function compareDeployments(userId: string, deploymentAId: string, deploymentBId: string) {
+  const [a, b] = await Promise.all([
+    getDeploymentById(userId, deploymentAId),
+    getDeploymentById(userId, deploymentBId),
+  ]);
+
+  const durationA = a.duration_seconds ?? 0;
+  const durationB = b.duration_seconds ?? 0;
+  const durationDelta = durationB - durationA;
+  const durationChangePct = durationA === 0 ? 0 : Number((((durationB - durationA) / durationA) * 100).toFixed(2));
+
+  let commitsBetween: number | null = null;
+  let commitCompare: {
+    ahead_by: number;
+    behind_by: number;
+    commits: Array<{ sha: string; message: string; author: string }>;
+  } | null = null;
+
+  if (a.commit_sha && b.commit_sha && a.repository.full_name === b.repository.full_name) {
+    try {
+      const token = await getGithubAccessTokenForUser(userId);
+      const github = createGithubClient(token, userId);
+      const response = await github.get(`/repos/${a.repository.owner}/${a.repository.name}/compare/${a.commit_sha}...${b.commit_sha}`);
+
+      const ahead_by = Number(response.data?.ahead_by ?? 0);
+      const behind_by = Number(response.data?.behind_by ?? 0);
+      const commits = Array.isArray(response.data?.commits)
+        ? response.data.commits.map((commit: any) => ({
+          sha: String(commit.sha ?? "").slice(0, 7),
+          message: String(commit.commit?.message ?? ""),
+          author: String(commit.author?.login ?? commit.commit?.author?.name ?? "unknown"),
+        }))
+        : [];
+
+      commitsBetween = ahead_by;
+      commitCompare = {
+        ahead_by,
+        behind_by,
+        commits,
+      };
+    } catch {
+      commitsBetween = null;
+      commitCompare = null;
+    }
+  }
+
+  return {
+    deployment_a: a,
+    deployment_b: b,
+    diff: {
+      duration_delta_seconds: durationDelta,
+      duration_change_pct: durationChangePct,
+      status_changed: a.unified_status !== b.unified_status,
+      branch_changed: a.branch !== b.branch,
+      environment_changed: a.environment?.id !== b.environment?.id,
+      commits_between: commitsBetween,
+      commit_compare: commitCompare,
+    },
+  };
+}
+
+export async function promoteDeployment(
+  userId: string,
+  sourceDeploymentId: string,
+  targetEnvironmentId: string,
+  req?: any,
+) {
+  const source = await prisma.deployment.findFirst({
+    where: {
+      id: sourceDeploymentId,
+      user_id: userId,
+    },
+    include: {
+      environment: {
+        select: {
+          id: true,
+          display_name: true,
+        },
+      },
+      repository: {
+        select: {
+          id: true,
+          full_name: true,
+        },
+      },
+    },
+  });
+
+  if (!source) {
+    throw new Error("DEPLOYMENT_NOT_FOUND");
+  }
+
+  if (source.unified_status !== "success" || !source.codedeploy_id) {
+    throw new Error("NOT_PROMOTABLE");
+  }
+
+  const targetEnvironment = await prisma.environment.findFirst({
+    where: {
+      id: targetEnvironmentId,
+      user_id: userId,
+    },
+    select: {
+      id: true,
+      repository_id: true,
+      codedeploy_app: true,
+      codedeploy_group: true,
+      display_name: true,
+      color_tag: true,
+    },
+  });
+
+  if (!targetEnvironment) {
+    throw new Error("TARGET_ENV_NOT_FOUND");
+  }
+
+  if (targetEnvironment.id === source.environment_id) {
+    throw new Error("TARGET_ENV_INVALID");
+  }
+
+  if (targetEnvironment.repository_id !== source.repository_id) {
+    throw new Error("TARGET_ENV_REPO_MISMATCH");
+  }
+
+  const client = await getCodeDeployClient(userId);
+
+  const sourceDeploymentResult = await client.send(new GetDeploymentCommand({
+    deploymentId: source.codedeploy_id,
+  }));
+
+  const sourceRevision = sourceDeploymentResult.deploymentInfo?.revision;
+  if (!sourceRevision) {
+    throw new Error("SOURCE_REVISION_NOT_FOUND");
+  }
+
+  let createdCodeDeployId: string;
+  try {
+    const createResult = await client.send(new CreateDeploymentCommand({
+      applicationName: targetEnvironment.codedeploy_app,
+      deploymentGroupName: targetEnvironment.codedeploy_group,
+      revision: sourceRevision,
+    }));
+
+    if (!createResult.deploymentId) {
+      throw new Error("AWS_PROMOTION_FAILED");
+    }
+
+    createdCodeDeployId = createResult.deploymentId;
+  } catch {
+    throw new Error("AWS_PROMOTION_FAILED");
+  }
+
+  const created = await prisma.deployment.create({
+    data: {
+      user_id: userId,
+      repository_id: source.repository_id,
+      environment_id: targetEnvironment.id,
+      commit_sha: source.commit_sha,
+      branch: source.branch,
+      commit_message: source.commit_message,
+      triggered_by: userId,
+      github_run_id: null,
+      github_status: source.github_status,
+      github_run_url: source.github_run_url,
+      codedeploy_id: createdCodeDeployId,
+      codedeploy_status: "Created",
+      unified_status: "running",
+      is_rollback: false,
+      started_at: new Date(),
+      finished_at: null,
+      duration_seconds: null,
+    },
+    select: { id: true },
+  });
+
+  await writeAuditLog({
+    userId,
+    action: "deployment.promoted",
+    entityType: "deployment",
+    entityId: created.id,
+    metadata: {
+      source_deployment_id: source.id,
+      source_environment: source.environment?.display_name ?? "unknown",
+      target_environment: targetEnvironment.display_name,
+      commit_sha: source.commit_sha,
+    },
+    req,
+  });
+
+  return {
+    sourceDeploymentId: source.id,
+    newDeploymentId: created.id,
+    targetEnvironmentName: targetEnvironment.display_name,
   };
 }
