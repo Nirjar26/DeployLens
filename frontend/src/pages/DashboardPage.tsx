@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import DeploymentDrawer from "../components/dashboard/DeploymentDrawer";
 import DeploymentModal from "../components/dashboard/DeploymentModal";
 import ConnectionStatus from "../components/dashboard/ConnectionStatus";
@@ -7,8 +8,8 @@ import CompareModal from "../components/dashboard/CompareModal";
 import EnvironmentSwimlanes from "../components/dashboard/EnvironmentSwimlanes";
 import FilterBar from "../components/dashboard/FilterBar";
 import PipelineTable from "../components/dashboard/PipelineTable";
-import Sidebar from "../components/dashboard/Sidebar";
 import StatsRow from "../components/dashboard/StatsRow";
+import PageHeader from "../components/layout/PageHeader";
 import { useDeploymentSocket } from "../hooks/useDeploymentSocket";
 import { useAuthStore } from "../store/authStore";
 import { useDeploymentStore } from "../store/deploymentStore";
@@ -149,30 +150,14 @@ export default function DashboardPage() {
     [filters],
   );
 
-  async function handleLogout() {
-    try {
-      await fetch(`${import.meta.env.VITE_API_URL ?? "http://localhost:3001"}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch {
-      // ignore and clear local state
-    }
-
-    clearAuth();
-    navigate("/login", { replace: true });
-  }
-
   return (
-    <div className="dl-dashboard-shell">
-      <Sidebar onLogout={handleLogout} />
+    <>
+      <PageHeader
+        title="Deployments"
+        actions={<ConnectionStatus />}
+      />
 
-      <main className="dl-dashboard-main">
-        <header className="dl-dashboard-topbar">
-          <h1 className="dl-page-title">Deployments</h1>
-          <ConnectionStatus />
-        </header>
-
+      <div style={{ padding: "24px 32px", display: "flex", flexDirection: "column", gap: "24px" }}>
         <StatsRow stats={stats} isLoading={isLoadingStats} />
 
         {activeView === "pipeline" ? (
@@ -209,7 +194,7 @@ export default function DashboardPage() {
             }}
           />
         )}
-      </main>
+      </div>
 
       {/* Slide-in drawer for pipeline table rows */}
       <DeploymentDrawer
@@ -238,6 +223,6 @@ export default function DashboardPage() {
         deploymentBId={compareSelection[1] ?? null}
         onClose={() => setCompareModalOpen(false)}
       />
-    </div>
+    </>
   );
 }

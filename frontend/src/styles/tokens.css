@@ -1,0 +1,82 @@
+:root {
+  /* BACKGROUNDS */
+  --bg-page:          #f0f2f5;
+  --bg-surface:       #ffffff;
+  --bg-sunken:        #f6f8fa;
+  --bg-hover:         #f1f5f9;
+  --bg-active:        #eef2ff;
+  --bg-overlay:       rgba(15, 23, 42, 0.5);
+
+  /* TEXT */
+  --text-primary:     #0f172a;
+  --text-secondary:   #475569;
+  --text-muted:       #94a3b8;
+  --text-accent:      #4f46e5;
+  --text-on-accent:   #ffffff;
+
+  /* ACCENT */
+  --accent:           #4f46e5;
+  --accent-light:     #eef2ff;
+  --accent-border:    #c7d2fe;
+  --accent-hover:     #4338ca;
+
+  /* STATUS */
+  --status-success-bg:   #f0fdf4;
+  --status-success-text: #16a34a;
+  --status-success-border: #bbf7d0;
+
+  --status-failed-bg:    #fef2f2;
+  --status-failed-text:  #dc2626;
+  --status-failed-border: #fecaca;
+
+  --status-running-bg:   #eff6ff;
+  --status-running-text: #2563eb;
+  --status-running-border: #bfdbfe;
+
+  --status-pending-bg:   #f8fafc;
+  --status-pending-text: #64748b;
+  --status-pending-border: #e2e8f0;
+
+  --status-rolledback-bg:   #fff7ed;
+  --status-rolledback-text: #ea580c;
+  --status-rolledback-border: #fed7aa;
+
+  /* BORDERS */
+  --border-light:     #e2e8f0;
+  --border-medium:    #cbd5e1;
+  --border-strong:    #94a3b8;
+
+  /* SIDEBAR */
+  --sidebar-bg:       #ffffff;
+  --sidebar-width:    260px;
+  --sidebar-border:   #e2e8f0;
+
+  /* SHADOWS */
+  --shadow-xs:  0 1px 2px rgba(15,23,42,0.04);
+  --shadow-sm:  0 1px 4px rgba(15,23,42,0.06),
+                0 1px 2px rgba(15,23,42,0.04);
+  --shadow-md:  0 4px 16px rgba(15,23,42,0.08),
+                0 2px 4px rgba(15,23,42,0.04);
+  --shadow-lg:  0 8px 32px rgba(15,23,42,0.12),
+                0 4px 8px rgba(15,23,42,0.06);
+  --shadow-xl:  0 24px 64px rgba(15,23,42,0.16),
+                0 8px 16px rgba(15,23,42,0.08);
+
+  /* RADIUS */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  18px;
+  --radius-full: 9999px;
+
+  /* TYPOGRAPHY */
+  --font-sans: -apple-system, BlinkMacSystemFont,
+               'Inter', 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code',
+               'Cascadia Code', monospace;
+
+  /* TRANSITIONS */
+  --transition-fast: 100ms ease;
+  --transition-base: 150ms ease;
+  --transition-slow: 250ms ease;
+}

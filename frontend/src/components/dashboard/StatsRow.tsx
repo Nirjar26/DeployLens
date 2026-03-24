@@ -1,3 +1,4 @@
+import { CSSProperties } from "react";
 import { Activity, BarChart3, Clock, Rocket } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { DeploymentStats } from "../../store/deploymentStore";
@@ -25,9 +26,9 @@ export default function StatsRow({ stats, isLoading }: Props) {
   const successRate = stats?.success_rate_7d ?? 0;
 
   const successColor = useMemo(() => {
-    if (successRate > 80) return "#16a34a";
-    if (successRate >= 50) return "#d97706";
-    return "#dc2626";
+    if (successRate > 80) return "var(--status-success)";
+    if (successRate >= 50) return "var(--status-warning)";
+    return "var(--status-failed)";
   }, [successRate]);
 
   const runningNow = stats?.running_now ?? 0;
@@ -41,14 +42,80 @@ export default function StatsRow({ stats, isLoading }: Props) {
     clearStatsRefresh();
   }, [statsNeedRefresh, fetchStats, clearStatsRefresh]);
 
+  const statsRowStyle: CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: "16px",
+  };
+
+  const statCardStyle: CSSProperties = {
+    backgroundColor: "var(--bg-surface)",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-lg)",
+    padding: "16px 20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  };
+
+  const statHeaderStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "8px",
+  };
+
+  const statLabelStyle: CSSProperties = {
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "var(--text-secondary)",
+  };
+
+  const statValueStyle: CSSProperties = {
+    fontSize: "24px",
+    fontWeight: 700,
+    color: "var(--text-primary)",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  };
+
+  const statSubStyle: CSSProperties = {
+    fontSize: "12px",
+    color: "var(--text-muted)",
+    fontWeight: 400,
+  };
+
+  const skeletonCardStyle: CSSProperties = {
+    ...statCardStyle,
+    pointerEvents: "none",
+    opacity: 0.6,
+  };
+
+  const skeletonLineStyle: CSSProperties = {
+    height: "12px",
+    backgroundColor: "var(--bg-sunken)",
+    borderRadius: "var(--radius-sm)",
+    animation: "shimmer 2s infinite",
+  };
+
+  const pulseDotStyle: CSSProperties = {
+    display: "inline-block",
+    width: "8px",
+    height: "8px",
+    borderRadius: "var(--radius-full)",
+    backgroundColor: "var(--status-running)",
+    animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+  };
+
   if (isLoading) {
     return (
-      <div className="dl-stats-row">
+      <div style={statsRowStyle}>
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="dl-stat-card dl-skeleton-card">
-            <div className="dl-skeleton-line" style={{ width: "60%" }} />
-            <div className="dl-skeleton-line dl-skeleton-big" style={{ width: "40%" }} />
-            <div className="dl-skeleton-line" style={{ width: "50%" }} />
+          <div key={i} style={skeletonCardStyle}>
+            <div style={{ ...skeletonLineStyle, width: "60%" }} />
+            <div style={{ ...skeletonLineStyle, width: "40%", height: "20px" }} />
+            <div style={{ ...skeletonLineStyle, width: "50%" }} />
           </div>
         ))}
       </div>
@@ -56,46 +123,54 @@ export default function StatsRow({ stats, isLoading }: Props) {
   }
 
   return (
-    <div className="dl-stats-row">
-      <div className="dl-stat-card">
-        <div className="dl-stat-header">
-          <span className="dl-stat-label">Today</span>
-          <Rocket size={16} className="dl-stat-icon" />
+    <div style={statsRowStyle}>
+      <div style={statCardStyle}>
+        <div style={statHeaderStyle}>
+          <span style={statLabelStyle}>Today</span>
+          <Rocket size={16} color="var(--text-muted)" />
         </div>
-        <div className="dl-stat-value">{stats?.total_today ?? 0}</div>
-        <div className="dl-stat-sub">deployments</div>
+        <div style={statValueStyle}>{stats?.total_today ?? 0}</div>
+        <div style={statSubStyle}>deployments</div>
       </div>
 
-      <div className="dl-stat-card">
-        <div className="dl-stat-header">
-          <span className="dl-stat-label" style={{ color: successColor }}>Success rate</span>
-          <BarChart3 size={16} className="dl-stat-icon" />
+      <div style={statCardStyle}>
+        <div style={statHeaderStyle}>
+          <span style={{ ...statLabelStyle, color: successColor }}>Success rate</span>
+          <BarChart3 size={16} color="var(--text-muted)" />
         </div>
-        <div className="dl-stat-value" style={{ color: successColor }}>
+        <div style={{ ...statValueStyle, color: successColor }}>
           {successRate}%
         </div>
-        <div className="dl-stat-sub">last 7 days</div>
+        <div style={statSubStyle}>last 7 days</div>
       </div>
 
-      <div className="dl-stat-card">
-        <div className="dl-stat-header">
-          <span className="dl-stat-label" style={runningNow > 0 ? { color: "#2563eb" } : undefined}>Running</span>
-          <Activity size={16} className="dl-stat-icon" />
+      <div style={statCardStyle}>
+        <div style={statHeaderStyle}>
+          <span style={{
+            ...statLabelStyle,
+            color: runningNow > 0 ? "var(--status-running)" : "var(--text-secondary)",
+          }}>
+            Running
+          </span>
+          <Activity size={16} color="var(--text-muted)" />
         </div>
-        <div className="dl-stat-value" style={runningNow > 0 ? { color: "#2563eb" } : undefined}>
-          {runningNow > 0 && <span className="dl-pulse-dot" />}
+        <div style={{
+          ...statValueStyle,
+          color: runningNow > 0 ? "var(--status-running)" : "var(--text-primary)",
+        }}>
+          {runningNow > 0 && <span style={pulseDotStyle} />}
           {runningNow}
         </div>
-        <div className="dl-stat-sub">in progress</div>
+        <div style={statSubStyle}>in progress</div>
       </div>
 
-      <div className="dl-stat-card">
-        <div className="dl-stat-header">
-          <span className="dl-stat-label">Avg duration</span>
-          <Clock size={16} className="dl-stat-icon" />
+      <div style={statCardStyle}>
+        <div style={statHeaderStyle}>
+          <span style={statLabelStyle}>Avg duration</span>
+          <Clock size={16} color="var(--text-muted)" />
         </div>
-        <div className="dl-stat-value">{formatDuration(stats?.avg_duration_7d ?? 0)}</div>
-        <div className="dl-stat-sub">last 7 days</div>
+        <div style={statValueStyle}>{formatDuration(stats?.avg_duration_7d ?? 0)}</div>
+        <div style={statSubStyle}>last 7 days</div>
       </div>
     </div>
   );

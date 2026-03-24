@@ -1,81 +1,118 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import { useDeploymentStore } from "../../store/deploymentStore";
+import auditIcon from "../../assets/icons/custom/audit-svgrepo-com.svg";
+import connectIcon from "../../assets/icons/custom/connect-svgrepo-com.svg";
+import deployLensLogo from "../../assets/icons/custom/DeployLens.png";
+import logoutIcon from "../../assets/icons/custom/sign-out-left-2-svgrepo-com.svg";
 
-function DeployLensLogo() {
+function SvgMaskIcon({ src, size = 16 }: { src: string; size?: number }) {
   return (
-    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="16" cy="16" r="16" fill="#14b8a6" />
-      <path d="M16 8L16 20M16 8L11 13M16 8L21 13" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M10 22H22" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+    <span
+      aria-hidden="true"
+      style={{
+        width: `${size}px`,
+        height: `${size}px`,
+        display: "inline-block",
+        backgroundColor: "currentColor",
+        maskImage: `url(${src})`,
+        maskRepeat: "no-repeat",
+        maskPosition: "center",
+        maskSize: "contain",
+        WebkitMaskImage: `url(${src})`,
+        WebkitMaskRepeat: "no-repeat",
+        WebkitMaskPosition: "center",
+        WebkitMaskSize: "contain",
+      }}
+    />
+  );
+}
+
+function LogoDeploy() {
+  return (
+    <img
+      src={deployLensLogo}
+      alt="DeployLens"
+      style={{
+        width: "30px",
+        height: "30px",
+        objectFit: "cover",
+        display: "block",
+      }}
+    />
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <rect x="1" y="3" width="3" height="3" rx="0.5" />
+      <rect x="6" y="3" width="3" height="3" rx="0.5" />
+      <rect x="11" y="3" width="3" height="3" rx="0.5" />
+      <rect x="1" y="8" width="3" height="3" rx="0.5" />
+      <rect x="6" y="8" width="3" height="3" rx="0.5" />
+      <rect x="11" y="8" width="3" height="3" rx="0.5" />
+      <rect x="1" y="13" width="3" height="3" rx="0.5" />
+      <rect x="6" y="13" width="3" height="3" rx="0.5" />
+      <rect x="11" y="13" width="3" height="3" rx="0.5" />
     </svg>
   );
 }
 
-function DashboardIcon({ active }: { active?: boolean }) {
+function LinkIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <rect x="1" y="1" width="6" height="6" rx="1.5" fill={active ? "#14b8a6" : "currentColor"} />
-      <rect x="9" y="1" width="6" height="6" rx="1.5" fill={active ? "#14b8a6" : "currentColor"} />
-      <rect x="1" y="9" width="6" height="6" rx="1.5" fill={active ? "#14b8a6" : "currentColor"} />
-      <rect x="9" y="9" width="6" height="6" rx="1.5" fill={active ? "#14b8a6" : "currentColor"} />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M6.586 2l1.414 1.414-2 2A3 3 0 0 0 8 12h1v2H8a5 5 0 0 1-1.414-9.414l2 2L8.414 2H6.586zM9.414 14l-1.414-1.414 2-2A3 3 0 0 0 8 4H7V2h1a5 5 0 0 1 1.414 9.414l-2-2L9.414 14z" />
     </svg>
   );
 }
 
-function PipelineIcon() {
+function FolderIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <path d="M2 3.5H12M2 7H12M2 10.5H12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M2 2h6l2 2h4a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
     </svg>
   );
 }
 
-function EnvironmentsIcon() {
+function LayersIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-      <rect x="1" y="1" width="3.5" height="12" rx="1" stroke="currentColor" strokeWidth="1.2" />
-      <rect x="5.25" y="1" width="3.5" height="12" rx="1" stroke="currentColor" strokeWidth="1.2" />
-      <rect x="9.5" y="1" width="3.5" height="12" rx="1" stroke="currentColor" strokeWidth="1.2" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M8 1L1.5 4v2l6.5 3 6.5-3V4L8 1zm0 10L1.5 8v2l6.5 3 6.5-3v-2L8 11z" />
     </svg>
   );
 }
 
-function SettingsIcon() {
+function UserIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M8 10a2 2 0 100-4 2 2 0 000 4z" stroke="currentColor" strokeWidth="1.3" />
-      <path d="M13.05 10.13a1.2 1.2 0 00.24 1.32l.04.05a1.46 1.46 0 11-2.06 2.06l-.05-.04a1.2 1.2 0 00-1.32-.24 1.2 1.2 0 00-.73 1.1v.13a1.46 1.46 0 01-2.91 0v-.07a1.2 1.2 0 00-.79-1.1 1.2 1.2 0 00-1.32.24l-.05.04a1.46 1.46 0 11-2.06-2.06l.04-.05a1.2 1.2 0 00.24-1.32 1.2 1.2 0 00-1.1-.73H1.5a1.46 1.46 0 010-2.91h.07a1.2 1.2 0 001.1-.79 1.2 1.2 0 00-.24-1.32l-.04-.05a1.46 1.46 0 112.06-2.06l.05.04a1.2 1.2 0 001.32.24h.06a1.2 1.2 0 00.73-1.1V1.5a1.46 1.46 0 012.91 0v.07a1.2 1.2 0 00.73 1.1 1.2 1.2 0 001.32-.24l.05-.04a1.46 1.46 0 112.06 2.06l-.04.05a1.2 1.2 0 00-.24 1.32v.06a1.2 1.2 0 001.1.73h.13a1.46 1.46 0 010 2.91h-.07a1.2 1.2 0 00-1.1.73z" stroke="currentColor" strokeWidth="1.1" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zm0 2c-4 0-6 2-6 4v2h12v-2c0-2-2-4-6-4z" />
     </svg>
   );
 }
 
-function AnalyticsIcon() {
+function ShieldIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M2.5 13.5H13.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-      <rect x="3" y="8" width="2.2" height="4" rx="0.8" fill="currentColor" />
-      <rect x="6.9" y="5.5" width="2.2" height="6.5" rx="0.8" fill="currentColor" />
-      <rect x="10.8" y="3" width="2.2" height="9" rx="0.8" fill="currentColor" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M8 1l6 2v4c0 4.4-3.2 6.3-6 7-2.8-.7-6-2.6-6-7V3l6-2z" />
     </svg>
   );
 }
 
-function LogoutIcon() {
+function ListIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M6 14H3.33A1.33 1.33 0 012 12.67V3.33A1.33 1.33 0 013.33 2H6M10.67 11.33L14 8l-3.33-3.33M14 8H6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M2 3h12v2H2V3zm0 4h12v2H2V7zm0 4h12v2H2v-2z" />
     </svg>
   );
 }
 
-function ChevronDown({ className }: { className?: string }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className={className}>
-      <path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+function GithubDot() {
+  return <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "var(--status-success-text)" }} />;
+}
+
+function AwsDot() {
+  return <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "var(--status-failed-text)" }} />;
 }
 
 type SidebarProps = {
@@ -84,145 +121,431 @@ type SidebarProps = {
 
 export default function Sidebar({ onLogout }: SidebarProps) {
   const location = useLocation();
-  const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
-  const activeView = useDeploymentStore((state) => state.activeView);
-  const setView = useDeploymentStore((state) => state.setView);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const [popupOpen, setPopupOpen] = useState(false);
-  const popupRef = useRef<HTMLDivElement>(null);
-  const profileRef = useRef<HTMLButtonElement>(null);
-
-  const isDashboard = location.pathname === "/dashboard";
-  const isAnalytics = location.pathname === "/analytics";
-  const isSettings = location.pathname === "/settings";
   const userInitial = user?.name?.charAt(0).toUpperCase() ?? "?";
 
+  // Determine active states
+  const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
+
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        popupRef.current &&
-        !popupRef.current.contains(event.target as Node) &&
-        profileRef.current &&
-        !profileRef.current.contains(event.target as Node)
-      ) {
-        setPopupOpen(false);
+    function handleClickOutside(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node) &&
+          buttonRef.current && !buttonRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
       }
     }
 
-    if (popupOpen) {
+    if (profileOpen) {
       document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
     }
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [popupOpen]);
+  }, [profileOpen]);
 
   return (
-    <aside className="dl-sidebar">
-      {/* Top: Logo */}
-      <div className="dl-sidebar-top">
-        <div className="dl-sidebar-logo-row">
-          <DeployLensLogo />
-          <span className="dl-sidebar-wordmark">DeployLens</span>
-        </div>
-        <div className="dl-sidebar-divider" />
-
-        {/* User profile */}
-        <div className="dl-sidebar-profile-wrap">
-          <button
-            ref={profileRef}
-            type="button"
-            className="dl-sidebar-profile-btn"
-            onClick={() => setPopupOpen((prev) => !prev)}
-          >
-            <span className="dl-sidebar-avatar">{userInitial}</span>
-            <span className="dl-sidebar-profile-info">
-              <span className="dl-sidebar-profile-name truncate">{user?.name ?? "User"}</span>
-              <span className="dl-sidebar-profile-email truncate">{user?.email ?? ""}</span>
-            </span>
-            <ChevronDown className={`dl-sidebar-chevron ${popupOpen ? "dl-sidebar-chevron-open" : ""}`} />
-          </button>
-
-          {popupOpen && (
-            <div ref={popupRef} className="dl-sidebar-popup">
-              <span className="dl-sidebar-popup-label">Signed in as</span>
-              <span className="dl-sidebar-popup-email">{user?.email ?? ""}</span>
-              <div className="dl-sidebar-popup-divider" />
-              <button type="button" className="dl-sidebar-popup-item" onClick={() => setPopupOpen(false)}>
-                View profile
-              </button>
-              <div className="dl-sidebar-popup-divider" />
-              <button
-                type="button"
-                className="dl-sidebar-popup-item dl-sidebar-popup-logout"
-                onClick={() => {
-                  setPopupOpen(false);
-                  onLogout();
-                }}
-              >
-                Log out
-              </button>
-            </div>
-          )}
-        </div>
-        <div className="dl-sidebar-divider" />
+    <aside style={{
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "var(--sidebar-width)",
+      height: "100vh",
+      backgroundColor: "var(--bg-surface)",
+      borderRight: "1px solid var(--border-light)",
+      display: "flex",
+      flexDirection: "column",
+      zIndex: 50,
+      overflow: "hidden",
+    }}>
+      {/* Logo Area */}
+      <div style={{
+        height: "78px",
+        padding: "0 20px",
+        borderBottom: "1px solid var(--border-light)",
+        display: "flex",
+        alignItems: "center",
+        gap: "12px",
+      }}>
+        <LogoDeploy />
+        <span style={{
+          fontSize: "20px",
+          fontWeight: 800,
+          color: "var(--text-primary)",
+          letterSpacing: "-0.6px",
+        }}>
+          DeployLens
+        </span>
       </div>
 
-      {/* Middle: Nav */}
-      <nav className="dl-sidebar-nav">
-        <span className="dl-sidebar-section-label">MAIN</span>
-
-        <Link
-          to="/dashboard"
-          className={`dl-sidebar-nav-item ${isDashboard ? "dl-sidebar-nav-item-active" : ""}`}
-        >
-          <DashboardIcon active={isDashboard} />
-          <span>Dashboard</span>
-        </Link>
-
-        <Link
-          to="/analytics"
-          className={`dl-sidebar-nav-item ${isAnalytics ? "dl-sidebar-nav-item-active" : ""}`}
-        >
-          <AnalyticsIcon />
-          <span>Analytics</span>
-        </Link>
-
-        {isDashboard && (
-          <div className="dl-sidebar-subnav">
-            <button
-              type="button"
-              className={`dl-sidebar-subnav-item ${activeView === "pipeline" ? "dl-sidebar-subnav-active" : ""}`}
-              onClick={() => setView("pipeline")}
+      {/* Navigation */}
+      <nav style={{
+        flex: 1,
+        overflowY: "auto",
+        padding: "12px 12px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "24px",
+      }}>
+        {/* MAIN Section */}
+        <div>
+          <label style={{
+            fontSize: "10px",
+            fontWeight: 600,
+            color: "var(--text-muted)",
+            letterSpacing: "0.8px",
+            textTransform: "uppercase",
+            padding: "0 8px",
+            display: "block",
+            marginBottom: "4px",
+          }}>
+            MAIN
+          </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+            <Link
+              to="/dashboard"
+              style={{
+                height: "36px",
+                padding: "0 10px",
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+                transition: "all var(--transition-base)",
+                textDecoration: "none",
+                background: isActive("/dashboard") ? "var(--bg-active)" : "transparent",
+                color: isActive("/dashboard") ? "var(--text-accent)" : "var(--text-secondary)",
+              }}
             >
-              <PipelineIcon />
-              <span>Pipeline</span>
-            </button>
-            <button
-              type="button"
-              className={`dl-sidebar-subnav-item ${activeView === "environments" ? "dl-sidebar-subnav-active" : ""}`}
-              onClick={() => setView("environments")}
+              <MenuIcon />
+              <span style={{ fontSize: "13px", fontWeight: isActive("/dashboard") ? 600 : 500 }}>Dashboard</span>
+            </Link>
+            <Link
+              to="/analytics"
+              style={{
+                height: "36px",
+                padding: "0 10px",
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+                transition: "all var(--transition-base)",
+                textDecoration: "none",
+                background: isActive("/analytics") ? "var(--bg-active)" : "transparent",
+                color: isActive("/analytics") ? "var(--text-accent)" : "var(--text-secondary)",
+              }}
             >
-              <EnvironmentsIcon />
-              <span>Environments</span>
+              <ListIcon />
+              <span style={{ fontSize: "13px", fontWeight: isActive("/analytics") ? 600 : 500 }}>Analytics</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* CONFIGURATION Section */}
+        <div>
+          <label style={{
+            fontSize: "10px",
+            fontWeight: 600,
+            color: "var(--text-muted)",
+            letterSpacing: "0.8px",
+            textTransform: "uppercase",
+            padding: "0 8px",
+            display: "block",
+            marginBottom: "4px",
+          }}>
+            CONFIGURATION
+          </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+            {/* Integrations with status dots */}
+            <Link
+              to="/settings/integrations"
+              style={{
+                height: "36px",
+                padding: "0 10px",
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+                transition: "all var(--transition-base)",
+                textDecoration: "none",
+                background: isActive("/settings/integrations") ? "var(--bg-active)" : "transparent",
+                color: isActive("/settings/integrations") ? "var(--text-accent)" : "var(--text-secondary)",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <SvgMaskIcon src={connectIcon} />
+                <span style={{ fontSize: "13px", fontWeight: isActive("/settings/integrations") ? 600 : 500 }}>Integrations</span>
+              </div>
+              <div style={{ display: "flex", gap: "4px" }}>
+                <GithubDot />
+                <AwsDot />
+              </div>
+            </Link>
+
+            {/* Repositories with count pill */}
+            <Link
+              to="/settings/repositories"
+              style={{
+                height: "36px",
+                padding: "0 10px",
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+                transition: "all var(--transition-base)",
+                textDecoration: "none",
+                background: isActive("/settings/repositories") ? "var(--bg-active)" : "transparent",
+                color: isActive("/settings/repositories") ? "var(--text-accent)" : "var(--text-secondary)",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <FolderIcon />
+                <span style={{ fontSize: "13px", fontWeight: isActive("/settings/repositories") ? 600 : 500 }}>Repositories</span>
+              </div>
+              <div style={{
+                background: "var(--bg-sunken)",
+                color: "var(--text-muted)",
+                fontSize: "11px",
+                fontWeight: 600,
+                padding: "0 6px",
+                borderRadius: "var(--radius-full)",
+                minWidth: "20px",
+                textAlign: "center",
+              }}>
+                3
+              </div>
+            </Link>
+
+            {/* Environments with count pill */}
+            <Link
+              to="/settings/environments"
+              style={{
+                height: "36px",
+                padding: "0 10px",
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+                transition: "all var(--transition-base)",
+                textDecoration: "none",
+                background: isActive("/settings/environments") ? "var(--bg-active)" : "transparent",
+                color: isActive("/settings/environments") ? "var(--text-accent)" : "var(--text-secondary)",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <LayersIcon />
+                <span style={{ fontSize: "13px", fontWeight: isActive("/settings/environments") ? 600 : 500 }}>Environments</span>
+              </div>
+              <div style={{
+                background: "var(--bg-sunken)",
+                color: "var(--text-muted)",
+                fontSize: "11px",
+                fontWeight: 600,
+                padding: "0 6px",
+                borderRadius: "var(--radius-full)",
+                minWidth: "20px",
+                textAlign: "center",
+              }}>
+                2
+              </div>
+            </Link>
+          </div>
+        </div>
+
+        {/* ACCOUNT Section */}
+        <div>
+          <label style={{
+            fontSize: "10px",
+            fontWeight: 600,
+            color: "var(--text-muted)",
+            letterSpacing: "0.8px",
+            textTransform: "uppercase",
+            padding: "0 8px",
+            display: "block",
+            marginBottom: "4px",
+          }}>
+            ACCOUNT
+          </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+            <Link
+              to="/settings/profile"
+              style={{
+                height: "36px",
+                padding: "0 10px",
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+                transition: "all var(--transition-base)",
+                textDecoration: "none",
+                background: isActive("/settings/profile") ? "var(--bg-active)" : "transparent",
+                color: isActive("/settings/profile") ? "var(--text-accent)" : "var(--text-secondary)",
+              }}
+            >
+              <UserIcon />
+              <span style={{ fontSize: "13px", fontWeight: isActive("/settings/profile") ? 600 : 500 }}>Profile</span>
+            </Link>
+            <Link
+              to="/settings/security"
+              style={{
+                height: "36px",
+                padding: "0 10px",
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+                transition: "all var(--transition-base)",
+                textDecoration: "none",
+                background: isActive("/settings/security") ? "var(--bg-active)" : "transparent",
+                color: isActive("/settings/security") ? "var(--text-accent)" : "var(--text-secondary)",
+              }}
+            >
+              <ShieldIcon />
+              <span style={{ fontSize: "13px", fontWeight: isActive("/settings/security") ? 600 : 500 }}>Security</span>
+            </Link>
+            <Link
+              to="/settings/audit"
+              style={{
+                height: "36px",
+                padding: "0 10px",
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+                transition: "all var(--transition-base)",
+                textDecoration: "none",
+                background: isActive("/settings/audit") ? "var(--bg-active)" : "transparent",
+                color: isActive("/settings/audit") ? "var(--text-accent)" : "var(--text-secondary)",
+              }}
+            >
+              <SvgMaskIcon src={auditIcon} />
+              <span style={{ fontSize: "13px", fontWeight: isActive("/settings/audit") ? 600 : 500 }}>Audit Log</span>
+            </Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* User Area Bottom */}
+      <div style={{
+        borderTop: "1px solid var(--border-light)",
+        padding: "12px 16px",
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+        position: "relative",
+      }}>
+        <div style={{
+          width: "30px",
+          height: "30px",
+          borderRadius: "var(--radius-full)",
+          background: "var(--accent-light)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: "12px",
+          fontWeight: 700,
+          color: "var(--accent)",
+          flexShrink: 0,
+        }}>
+          {userInitial}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            fontSize: "12px",
+            fontWeight: 600,
+            color: "var(--text-primary)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}>
+            {user?.name || "User"}
+          </div>
+          <div style={{
+            fontSize: "10px",
+            color: "var(--text-muted)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}>
+            {user?.email || ""}
+          </div>
+        </div>
+        <button
+          ref={buttonRef}
+          onClick={() => setProfileOpen(!profileOpen)}
+          style={{
+            width: "28px",
+            height: "28px",
+            borderRadius: "var(--radius-sm)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--status-failed-text)",
+            transition: "all var(--transition-base)",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "var(--status-failed-bg)";
+            (e.currentTarget as HTMLElement).style.color = "var(--status-failed-text)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = "transparent";
+            (e.currentTarget as HTMLElement).style.color = "var(--status-failed-text)";
+          }}
+        >
+          <SvgMaskIcon src={logoutIcon} size={14} />
+        </button>
+
+        {profileOpen && (
+          <div ref={profileRef} style={{
+            position: "absolute",
+            bottom: "100%",
+            right: 0,
+            backgroundColor: "var(--bg-surface)",
+            border: "1px solid var(--border-light)",
+            borderRadius: "var(--radius-md)",
+            boxShadow: "var(--shadow-md)",
+            padding: "8px 0",
+            minWidth: "140px",
+          }}>
+            <button
+              onClick={() => {
+                setProfileOpen(false);
+                onLogout();
+              }}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--status-failed-text)",
+                fontSize: "13px",
+                textAlign: "left",
+                transition: "background var(--transition-base)",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-hover)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              Log out
             </button>
           </div>
         )}
-      </nav>
-
-      {/* Bottom: Settings + Logout */}
-      <div className="dl-sidebar-bottom">
-        <div className="dl-sidebar-divider" />
-        <Link
-          to="/settings"
-          className={`dl-sidebar-nav-item ${isSettings ? "dl-sidebar-nav-item-active" : ""}`}
-        >
-          <SettingsIcon />
-          <span>Settings</span>
-        </Link>
-        <button type="button" className="dl-sidebar-nav-item dl-sidebar-logout-item" onClick={onLogout}>
-          <LogoutIcon />
-          <span>Log out</span>
-        </button>
       </div>
     </aside>
   );

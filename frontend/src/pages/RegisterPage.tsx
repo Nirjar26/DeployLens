@@ -1,3 +1,4 @@
+import { CSSProperties } from "react";
 import { Eye, EyeOff, Github } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -65,27 +66,134 @@ export default function RegisterPage() {
     }
   }
 
+  const layoutStyle: CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    minHeight: "100vh",
+    backgroundColor: "var(--bg-page)",
+  };
+
+  const brandPaneStyle: CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "var(--accent-light)",
+    padding: "48px 32px",
+    position: "relative",
+    overflow: "hidden",
+  };
+
+  const brandGridStyle: CSSProperties = {
+    position: "absolute",
+    inset: 0,
+    backgroundImage: `
+      linear-gradient(var(--border-light) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border-light) 1px, transparent 1px)
+    `,
+    backgroundSize: "40px 40px",
+    opacity: 0.5,
+  };
+
+  const brandCopyStyle: CSSProperties = {
+    position: "relative",
+    zIndex: 1,
+    textAlign: "center",
+  };
+
+  const brandLogoStyle: CSSProperties = {
+    fontSize: "32px",
+    fontWeight: 700,
+    color: "var(--accent)",
+    margin: 0,
+    marginBottom: "8px",
+  };
+
+  const brandTextStyle: CSSProperties = {
+    fontSize: "16px",
+    color: "var(--text-secondary)",
+    margin: 0,
+  };
+
+  const formPaneStyle: CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "48px 32px",
+    backgroundColor: "var(--bg-surface)",
+  };
+
+  const formStyle: CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+    width: "100%",
+  };
+
+  const errorBannerStyle: CSSProperties = {
+    padding: "12px 16px",
+    backgroundColor: "rgba(220, 38, 38, 0.1)",
+    color: "var(--status-failed)",
+    borderRadius: "var(--radius-md)",
+    border: "1px solid rgba(220, 38, 38, 0.3)",
+    fontSize: "13px",
+    fontWeight: 500,
+  };
+
+  const dividerStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    margin: "8px 0",
+  };
+
+  const dividerLineStyle: CSSProperties = {
+    flex: 1,
+    height: "1px",
+    backgroundColor: "var(--border-light)",
+  };
+
+  const dividerTextStyle: CSSProperties = {
+    fontSize: "13px",
+    color: "var(--text-muted)",
+    fontWeight: 500,
+    flex: "0 0 auto",
+  };
+
+  const ghostIconBtnStyle: CSSProperties = {
+    background: "none",
+    border: "none",
+    padding: "4px",
+    cursor: "pointer",
+    color: "var(--text-muted)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all var(--transition-fast)",
+  };
+
   return (
-    <div className="auth-layout">
-      <aside className="brand-pane" aria-hidden="true">
-        <div className="brand-grid" />
-        <div className="brand-copy">
-          <div className="brand-logo">DeployLens</div>
-          <p>One view. Every deploy.</p>
+    <div style={layoutStyle}>
+      <aside style={brandPaneStyle} aria-hidden="true">
+        <div style={brandGridStyle} />
+        <div style={brandCopyStyle}>
+          <div style={brandLogoStyle}>DeployLens</div>
+          <p style={brandTextStyle}>One view. Every deploy.</p>
         </div>
       </aside>
-      <main className="form-pane">
+      <main style={formPaneStyle}>
         <AuthCard
           title="Create your account"
           subtitle="Start tracking deployments in minutes"
           footer={
-            <p>
-              Already have an account? <Link to="/login">Sign in</Link>
+            <p style={{ margin: 0 }}>
+              Already have an account? <Link to="/login" style={{ color: "var(--accent)" }}>Sign in</Link>
             </p>
           }
         >
-          <form onSubmit={handleSubmit} className="auth-form">
-            {topError ? <div className="form-error-banner">{topError}</div> : null}
+          <form onSubmit={handleSubmit} style={formStyle}>
+            {topError ? <div style={errorBannerStyle}>{topError}</div> : null}
 
             <AuthInput
               label="Full name"
@@ -118,7 +226,7 @@ export default function RegisterPage() {
               rightElement={
                 <button
                   type="button"
-                  className="ghost-icon-btn"
+                  style={ghostIconBtnStyle}
                   onClick={() => setShowPassword((current) => !current)}
                   tabIndex={-1}
                 >
@@ -131,8 +239,10 @@ export default function RegisterPage() {
               Create account
             </AuthButton>
 
-            <div className="divider">
-              <span>or</span>
+            <div style={dividerStyle}>
+              <div style={dividerLineStyle} />
+              <span style={dividerTextStyle}>or</span>
+              <div style={dividerLineStyle} />
             </div>
 
             <AuthButton

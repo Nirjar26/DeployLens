@@ -1,3 +1,4 @@
+import { CSSProperties } from "react";
 import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Loader2, MinusCircle, RotateCcw, X, XCircle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { deployments, github } from "../../lib/api";
@@ -34,11 +35,11 @@ const eventOrder = ["ApplicationStop", "BeforeInstall", "AfterInstall", "Applica
 
 function LifecycleIcon({ status }: { status: string }) {
   const s = status.toLowerCase();
-  if (s === "succeeded") return <CheckCircle2 size={18} color="#16a34a" />;
-  if (s === "failed") return <XCircle size={18} color="#dc2626" />;
-  if (s === "inprogress" || s === "in_progress") return <Loader2 size={18} color="#2563eb" className="dl-spin" />;
-  if (s === "skipped") return <MinusCircle size={18} color="#cbd5e1" />;
-  return <Clock size={18} color="#94a3b8" />;
+  if (s === "succeeded") return <CheckCircle2 size={18} color="var(--status-success)" />;
+  if (s === "failed") return <XCircle size={18} color="var(--status-failed)" />;
+  if (s === "inprogress" || s === "in_progress") return <Loader2 size={18} color="var(--status-running)" style={{ animation: "spin 1.5s linear infinite" }} />;
+  if (s === "skipped") return <MinusCircle size={18} color="var(--text-muted)" />;
+  return <Clock size={18} color="var(--text-muted)" />;
 }
 
 export default function DeploymentModal({ open, detail, isLoading, onClose, onOpenLinkedDeployment }: Props) {
@@ -156,25 +157,420 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
     }
   }
 
+  // Style definitions
+  const modalOverlayStyle: CSSProperties = {
+    position: "fixed",
+    inset: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    backdropFilter: "blur(4px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 200,
+  };
+
+  const modalContainerStyle: CSSProperties = {
+    backgroundColor: "var(--bg-surface)",
+    borderRadius: "var(--radius-lg)",
+    width: "90%",
+    maxWidth: "620px",
+    maxHeight: "80vh",
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+    boxShadow: "var(--shadow-xl)",
+    animation: "modalIn 250ms cubic-bezier(0.34, 1.56, 0.64, 1)",
+  };
+
+  const modalHeaderStyle: CSSProperties = {
+    backgroundColor: "var(--bg-sunken)",
+    borderBottom: "1px solid var(--border-light)",
+    padding: "16px 20px",
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: "12px",
+  };
+
+  const modalHeaderLeftStyle: CSSProperties = {
+    flex: "0 0 auto",
+  };
+
+  const modalHeaderCenterStyle: CSSProperties = {
+    flex: 1,
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  };
+
+  const shaPillStyle: CSSProperties = {
+    display: "inline-block",
+    padding: "2px 8px",
+    backgroundColor: "var(--accent-light)",
+    color: "var(--accent)",
+    borderRadius: "var(--radius-sm)",
+    fontFamily: "var(--font-mono)",
+    fontSize: "11px",
+    fontWeight: 600,
+    width: "fit-content",
+  };
+
+  const modalTitleStyle: CSSProperties = {
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "var(--text-primary)",
+    margin: 0,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  };
+
+  const modalEnvLabelStyle: CSSProperties = {
+    fontSize: "12px",
+    color: "var(--text-muted)",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  };
+
+  const envDotStyle: CSSProperties = {
+    display: "inline-block",
+    width: "8px",
+    height: "8px",
+    borderRadius: "var(--radius-full)",
+  };
+
+  const modalCloseStyle: CSSProperties = {
+    flex: "0 0 auto",
+    padding: "4px",
+    backgroundColor: "transparent",
+    border: "none",
+    color: "var(--text-secondary)",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    transition: "all var(--transition-fast)",
+  };
+
+  const modalBodyStyle: CSSProperties = {
+    flex: 1,
+    overflowY: "auto",
+    padding: "20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  };
+
+  const modalLoadingStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "12px",
+    padding: "40px 20px",
+    color: "var(--text-muted)",
+  };
+
+  const modalSectionStyle: CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+    padding: "16px",
+    backgroundColor: "var(--bg-sunken)",
+    borderRadius: "var(--radius-md)",
+    border: "1px solid var(--border-light)",
+  };
+
+  const modalSectionHeaderStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "var(--text-primary)",
+  };
+
+  const modalInlineBadgeStyle: CSSProperties = {
+    marginLeft: "auto",
+    padding: "2px 8px",
+    backgroundColor: "var(--accent-light)",
+    color: "var(--accent)",
+    borderRadius: "var(--radius-sm)",
+    fontSize: "11px",
+    fontWeight: 600,
+  };
+
+  const modalExtLinkStyle: CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    color: "var(--accent)",
+    fontSize: "13px",
+    fontWeight: 500,
+    textDecoration: "none",
+    cursor: "pointer",
+    transition: "all var(--transition-fast)",
+  };
+
+  const modalOverviewGridStyle: CSSProperties = {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "12px",
+  };
+
+  const modalKvStyle: CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "2px",
+  };
+
+  const modalKvLabelStyle: CSSProperties = {
+    fontSize: "11px",
+    fontWeight: 600,
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+    color: "var(--text-muted)",
+  };
+
+  const modalKvValueStyle: CSSProperties = {
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "var(--text-primary)",
+  };
+
+  const modalEventListStyle: CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+  };
+
+  const modalEventRowStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "8px 0",
+    borderBottom: "1px solid var(--border-light)",
+  };
+
+  const modalEventDotStyle: CSSProperties = {
+    display: "inline-block",
+    width: "4px",
+    height: "4px",
+    borderRadius: "var(--radius-full)",
+    backgroundColor: "var(--accent)",
+    flex: "0 0 auto",
+  };
+
+  const modalEventNameStyle: CSSProperties = {
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "var(--text-primary)",
+    flex: 1,
+  };
+
+  const modalEventDurStyle: CSSProperties = {
+    fontSize: "12px",
+    color: "var(--text-muted)",
+    fontFamily: "var(--font-mono)",
+    flex: "0 0 auto",
+  };
+
+  const modalLifecycleStyle: CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  };
+
+  const modalLifecycleRowStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "12px",
+    padding: "12px",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--bg-surface)",
+    border: "1px solid var(--border-light)",
+  };
+
+  const modalLifecycleFailedStyle: CSSProperties = {
+    ...modalLifecycleRowStyle,
+    backgroundColor: "rgba(220, 38, 38, 0.05)",
+    borderColor: "rgba(220, 38, 38, 0.2)",
+  };
+
+  const modalLifecycleInfoStyle: CSSProperties = {
+    flex: 1,
+    minWidth: 0,
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  };
+
+  const modalLifecycleNameStyle: CSSProperties = {
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "var(--text-primary)",
+  };
+
+  const modalLifecycleErrorStyle: CSSProperties = {
+    fontSize: "12px",
+    color: "var(--status-failed)",
+    fontWeight: 500,
+  };
+
+  const modalLifecycleDurStyle: CSSProperties = {
+    fontSize: "12px",
+    color: "var(--text-muted)",
+    fontFamily: "var(--font-mono)",
+    flex: "0 0 auto",
+  };
+
+  const modalRollbackWarningStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: "12px",
+    padding: "12px",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "rgba(217, 119, 6, 0.08)",
+    borderLeft: "3px solid var(--status-warning)",
+    color: "var(--text-primary)",
+  };
+
+  const modalRollbackWarningTextStyle: CSSProperties = {
+    fontSize: "13px",
+    margin: 0,
+  };
+
+  const modalRollbackBtnStyle: CSSProperties = {
+    padding: "8px 12px",
+    backgroundColor: "var(--status-failed)",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "var(--radius-md)",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all var(--transition-fast)",
+  };
+
+  const toastInlineStyle: CSSProperties = {
+    padding: "8px 12px",
+    backgroundColor: "var(--accent-light)",
+    color: "var(--accent)",
+    borderRadius: "var(--radius-md)",
+    fontSize: "12px",
+    fontWeight: 500,
+    marginTop: "8px",
+  };
+
+  const noDataStyle: CSSProperties = {
+    fontSize: "13px",
+    color: "var(--text-muted)",
+    fontStyle: "italic",
+    margin: 0,
+    padding: "8px 0",
+  };
+
+  const selectStyle: CSSProperties = {
+    width: "100%",
+    padding: "8px 12px",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--bg-surface)",
+    color: "var(--text-primary)",
+    fontSize: "13px",
+    fontWeight: 500,
+    cursor: "pointer",
+  };
+
+  const primaryBtnStyle: CSSProperties = {
+    padding: "8px 16px",
+    backgroundColor: "var(--accent)",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "var(--radius-md)",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all var(--transition-fast)",
+    marginTop: "8px",
+  };
+
+  const secondaryBtnStyle: CSSProperties = {
+    padding: "8px 16px",
+    backgroundColor: "var(--bg-sunken)",
+    color: "var(--text-primary)",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-md)",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all var(--transition-fast)",
+    marginTop: "8px",
+  };
+
+  const errorToastStyle: CSSProperties = {
+    padding: "12px 16px",
+    backgroundColor: "rgba(220, 38, 38, 0.1)",
+    color: "var(--status-failed)",
+    borderRadius: "var(--radius-md)",
+    border: "1px solid rgba(220, 38, 38, 0.3)",
+    fontSize: "13px",
+    fontWeight: 500,
+    marginTop: "8px",
+  };
+
+  const successToastStyle: CSSProperties = {
+    padding: "12px 16px",
+    backgroundColor: "rgba(22, 163, 74, 0.1)",
+    color: "var(--status-success)",
+    borderRadius: "var(--radius-md)",
+    border: "1px solid rgba(22, 163, 74, 0.3)",
+    fontSize: "13px",
+    fontWeight: 500,
+    marginTop: "8px",
+  };
+
+  const modalFooterStyle: CSSProperties = {
+    padding: "12px 20px",
+    borderTop: "1px solid var(--border-light)",
+    backgroundColor: "var(--bg-sunken)",
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "8px",
+  };
+
+  const closeButtonStyle: CSSProperties = {
+    padding: "8px 16px",
+    backgroundColor: "var(--bg-surface)",
+    color: "var(--text-primary)",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-md)",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all var(--transition-fast)",
+  };
+
   if (!open) return null;
 
   return (
-    <div className="dl-modal-overlay" onClick={onClose}>
-      <div className="dl-modal-container" onClick={(e) => e.stopPropagation()}>
+    <div style={modalOverlayStyle} onClick={onClose}>
+      <div style={modalContainerStyle} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="dl-modal-header">
-          <div className="dl-modal-header-left">
+        <div style={modalHeaderStyle}>
+          <div style={modalHeaderLeftStyle}>
             <StatusBadge status={detail?.unified_status ?? "pending"} size="lg" />
           </div>
-          <div className="dl-modal-header-center">
+          <div style={modalHeaderCenterStyle}>
             {detail && (
               <>
-                <span className="dl-sha-pill">{detail.commit_sha_short}</span>
-                <h3 className="dl-modal-title">{detail.commit_message ?? "No commit message"}</h3>
-                <span className="dl-modal-env-label">
+                <span style={shaPillStyle}>{detail.commit_sha_short}</span>
+                <h3 style={modalTitleStyle}>{detail.commit_message ?? "No commit message"}</h3>
+                <span style={modalEnvLabelStyle}>
                   {detail.environment && (
                     <>
-                      <span className="dl-env-dot" style={{ background: detail.environment.color_tag }} />
+                      <span style={{ ...envDotStyle, background: detail.environment.color_tag }} />
                       in {detail.environment.display_name}
                     </>
                   )}
@@ -182,54 +578,54 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
               </>
             )}
           </div>
-          <button type="button" className="dl-modal-close" onClick={onClose}>
+          <button type="button" style={modalCloseStyle} onClick={onClose}>
             <X size={16} />
           </button>
         </div>
 
         {/* Body */}
-        <div className="dl-modal-body">
+        <div style={modalBodyStyle}>
           {isLoading || !detail ? (
-            <div className="dl-modal-loading">
-              <Loader2 size={24} className="dl-spin" color="#94a3b8" />
+            <div style={modalLoadingStyle}>
+              <Loader2 size={24} style={{ animation: "spin 1.5s linear infinite" }} color="var(--text-muted)" />
               <span>Loading deployment details…</span>
             </div>
           ) : (
             <>
               {/* Overview Section */}
-              <div className="dl-modal-section">
-                <div className="dl-modal-section-header">
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#64748b" strokeWidth="1.2"/><path d="M7 4v3h3" stroke="#64748b" strokeWidth="1.2" strokeLinecap="round"/></svg>
+              <div style={modalSectionStyle}>
+                <div style={modalSectionHeaderStyle}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="var(--text-muted)" strokeWidth="1.2"/><path d="M7 4v3h3" stroke="var(--text-muted)" strokeWidth="1.2" strokeLinecap="round"/></svg>
                   <span>Overview</span>
                 </div>
-                <div className="dl-modal-overview-grid">
-                  <div className="dl-modal-kv">
-                    <span className="dl-modal-kv-label">Repository</span>
-                    <span className="dl-modal-kv-value dl-modal-link">
-                      <a href={`https://github.com/${detail.repository.full_name}`} target="_blank" rel="noreferrer">
+                <div style={modalOverviewGridStyle}>
+                  <div style={modalKvStyle}>
+                    <span style={modalKvLabelStyle}>Repository</span>
+                    <span style={modalKvValueStyle}>
+                      <a href={`https://github.com/${detail.repository.full_name}`} target="_blank" rel="noreferrer" style={modalExtLinkStyle}>
                         {detail.repository.full_name}
                       </a>
                     </span>
                   </div>
-                  <div className="dl-modal-kv">
-                    <span className="dl-modal-kv-label">Branch</span>
-                    <span className="dl-modal-kv-value">{detail.branch}</span>
+                  <div style={modalKvStyle}>
+                    <span style={modalKvLabelStyle}>Branch</span>
+                    <span style={modalKvValueStyle}>{detail.branch}</span>
                   </div>
-                  <div className="dl-modal-kv">
-                    <span className="dl-modal-kv-label">Triggered by</span>
-                    <span className="dl-modal-kv-value">{detail.triggered_by ?? "—"}</span>
+                  <div style={modalKvStyle}>
+                    <span style={modalKvLabelStyle}>Triggered by</span>
+                    <span style={modalKvValueStyle}>{detail.triggered_by ?? "—"}</span>
                   </div>
-                  <div className="dl-modal-kv">
-                    <span className="dl-modal-kv-label">Started</span>
-                    <span className="dl-modal-kv-value">{detail.started_at ? new Date(detail.started_at).toLocaleString() : "—"}</span>
+                  <div style={modalKvStyle}>
+                    <span style={modalKvLabelStyle}>Started</span>
+                    <span style={modalKvValueStyle}>{detail.started_at ? new Date(detail.started_at).toLocaleString() : "—"}</span>
                   </div>
-                  <div className="dl-modal-kv">
-                    <span className="dl-modal-kv-label">Finished</span>
-                    <span className="dl-modal-kv-value">{detail.finished_at ? new Date(detail.finished_at).toLocaleString() : "—"}</span>
+                  <div style={modalKvStyle}>
+                    <span style={modalKvLabelStyle}>Finished</span>
+                    <span style={modalKvValueStyle}>{detail.finished_at ? new Date(detail.finished_at).toLocaleString() : "—"}</span>
                   </div>
-                  <div className="dl-modal-kv">
-                    <span className="dl-modal-kv-label">Duration</span>
-                    <span className="dl-modal-kv-value">
+                  <div style={modalKvStyle}>
+                    <span style={modalKvLabelStyle}>Duration</span>
+                    <span style={modalKvValueStyle}>
                       {detail.duration_seconds !== null
                         ? formatDuration(detail.duration_seconds)
                         : detail.started_at && detail.unified_status === "running"
@@ -237,9 +633,12 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
                           : "—"}
                     </span>
                   </div>
-                  <div className="dl-modal-kv">
-                    <span className="dl-modal-kv-label">Is rollback</span>
-                    <span className={`dl-modal-kv-value ${detail.is_rollback ? "dl-text-orange" : ""}`}>
+                  <div style={modalKvStyle}>
+                    <span style={modalKvLabelStyle}>Is rollback</span>
+                    <span style={{
+                      ...modalKvValueStyle,
+                      color: detail.is_rollback ? "var(--status-warning)" : "var(--text-primary)",
+                    }}>
                       {detail.is_rollback ? "Yes" : "No"}
                     </span>
                   </div>
@@ -248,37 +647,37 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
 
               {/* GitHub Actions Section */}
               {detail.github_run_id && (
-                <div className="dl-modal-section">
-                  <div className="dl-modal-section-header">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="#64748b" strokeWidth="1.2"/><path d="M5 7L6.5 8.5L9 5.5" stroke="#64748b" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <div style={modalSectionStyle}>
+                  <div style={modalSectionHeaderStyle}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="var(--text-muted)" strokeWidth="1.2"/><path d="M5 7L6.5 8.5L9 5.5" stroke="var(--text-muted)" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>
                     <span>GitHub Actions</span>
                     {detail.github_status && (
-                      <span className="dl-modal-inline-badge">{detail.github_status}</span>
+                      <span style={modalInlineBadgeStyle}>{detail.github_status}</span>
                     )}
                   </div>
                   {detail.github_run_url && (
-                    <a href={detail.github_run_url} target="_blank" rel="noreferrer" className="dl-modal-ext-link">
+                    <a href={detail.github_run_url} target="_blank" rel="noreferrer" style={modalExtLinkStyle}>
                       View run on GitHub <ExternalLink size={12} />
                     </a>
                   )}
                   {detail.events.filter((e) => e.source === "github").length > 0 ? (
-                    <div className="dl-modal-event-list">
+                    <div style={modalEventListStyle}>
                       {detail.events.filter((e) => e.source === "github").map((event) => (
-                        <div key={`${event.source}-${event.event_name}`} className="dl-modal-event-row">
-                          <span className="dl-modal-event-dot" />
-                          <span className="dl-modal-event-name">{event.event_name}</span>
-                          <span className="dl-modal-event-dur">{formatMs(event.duration_ms)}</span>
+                        <div key={`${event.source}-${event.event_name}`} style={modalEventRowStyle}>
+                          <span style={modalEventDotStyle} />
+                          <span style={modalEventNameStyle}>{event.event_name}</span>
+                          <span style={modalEventDurStyle}>{formatMs(event.duration_ms)}</span>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="dl-modal-no-data">No step data available</p>
+                    <p style={noDataStyle}>No step data available</p>
                   )}
 
                   {detail.unified_status === "failed" ? (
                     <button
                       type="button"
-                      className="auth-btn auth-btn-secondary"
+                      style={secondaryBtnStyle}
                       onClick={() => void handleRerun()}
                       disabled={rerunLoading}
                     >
@@ -290,35 +689,35 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
 
               {/* CodeDeploy Section */}
               {detail.codedeploy_id && (
-                <div className="dl-modal-section">
-                  <div className="dl-modal-section-header">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="#64748b" strokeWidth="1.2"/><path d="M5 7H9M7 5V9" stroke="#64748b" strokeWidth="1.2" strokeLinecap="round"/></svg>
+                <div style={modalSectionStyle}>
+                  <div style={modalSectionHeaderStyle}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="2" y="2" width="10" height="10" rx="2" stroke="var(--text-muted)" strokeWidth="1.2"/><path d="M5 7H9M7 5V9" stroke="var(--text-muted)" strokeWidth="1.2" strokeLinecap="round"/></svg>
                     <span>CodeDeploy</span>
                     {detail.codedeploy_status && (
-                      <span className="dl-modal-inline-badge">{detail.codedeploy_status}</span>
+                      <span style={modalInlineBadgeStyle}>{detail.codedeploy_status}</span>
                     )}
                   </div>
                   {lifecycleEvents.length === 0 ? (
-                    <p className="dl-modal-no-data">No step data available</p>
+                    <p style={noDataStyle}>No step data available</p>
                   ) : (
-                    <div className="dl-modal-lifecycle">
+                    <div style={modalLifecycleStyle}>
                       {lifecycleEvents.map((event) => {
                         const isFailed = event.status.toLowerCase() === "failed";
                         return (
-                          <div key={`${event.source}-${event.event_name}`} className={`dl-modal-lifecycle-row ${isFailed ? "dl-modal-lifecycle-failed" : ""}`}>
+                          <div key={`${event.source}-${event.event_name}`} style={isFailed ? modalLifecycleFailedStyle : modalLifecycleRowStyle}>
                             <LifecycleIcon status={event.status} />
-                            <div className="dl-modal-lifecycle-info">
-                              <span className="dl-modal-lifecycle-name">{event.event_name}</span>
+                            <div style={modalLifecycleInfoStyle}>
+                              <span style={modalLifecycleNameStyle}>{event.event_name}</span>
                               {isFailed && event.message && (
-                                <span className="dl-modal-lifecycle-error">{event.message}</span>
+                                <span style={modalLifecycleErrorStyle}>{event.message}</span>
                               )}
                               {isFailed && event.log_url && (
-                                <a href={event.log_url} target="_blank" rel="noreferrer" className="dl-modal-ext-link dl-modal-ext-link-sm">
+                                <a href={event.log_url} target="_blank" rel="noreferrer" style={{ ...modalExtLinkStyle, fontSize: "12px" }}>
                                   View logs <ExternalLink size={10} />
                                 </a>
                               )}
                             </div>
-                            <span className="dl-modal-lifecycle-dur">{formatMs(event.duration_ms)}</span>
+                            <span style={modalLifecycleDurStyle}>{formatMs(event.duration_ms)}</span>
                           </div>
                         );
                       })}
@@ -329,46 +728,50 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
 
               {/* Rollback Section */}
               {detail.can_rollback && (
-                <div className="dl-modal-section">
-                  <div className="dl-modal-section-header">
-                    <RotateCcw size={14} color="#64748b" />
+                <div style={modalSectionStyle}>
+                  <div style={modalSectionHeaderStyle}>
+                    <RotateCcw size={14} color="var(--text-muted)" />
                     <span>Rollback</span>
                   </div>
-                  <div className="dl-modal-rollback-warning">
-                    <AlertTriangle size={16} color="#d97706" />
-                    <p>
+                  <div style={modalRollbackWarningStyle}>
+                    <AlertTriangle size={16} color="var(--status-warning)" style={{ flex: "0 0 auto" }} />
+                    <p style={modalRollbackWarningTextStyle}>
                       Rolling back will redeploy the previous successful revision to{" "}
                       {detail.environment?.display_name ?? "this environment"}. This cannot be undone.
                     </p>
                   </div>
                   <button
                     type="button"
-                    className="dl-modal-rollback-btn"
+                    style={modalRollbackBtnStyle}
                     onClick={() => setRollbackToast("Rollback coming soon")}
                   >
                     Roll back this deployment
                   </button>
                   {rollbackToast && (
-                    <div className="dl-toast-inline">{rollbackToast}</div>
+                    <div style={toastInlineStyle}>{rollbackToast}</div>
                   )}
                 </div>
               )}
 
               {detail.is_rollback && detail.rollback_info && (
-                <div className="dl-modal-section">
-                  <div className="dl-modal-section-header">
-                    <RotateCcw size={14} color="#64748b" />
+                <div style={modalSectionStyle}>
+                  <div style={modalSectionHeaderStyle}>
+                    <RotateCcw size={14} color="var(--text-muted)" />
                     <span>Rollback</span>
                   </div>
-                  <div className="dl-modal-rollback-info">
-                    <RotateCcw size={14} color="#ea580c" />
-                    <p>
+                  <div style={{
+                    ...modalRollbackWarningStyle,
+                    backgroundColor: "rgba(234, 88, 12, 0.08)",
+                    borderLeftColor: "var(--status-rolled-back)",
+                  }}>
+                    <RotateCcw size={14} color="var(--status-rolled-back)" style={{ flex: "0 0 auto" }} />
+                    <p style={modalRollbackWarningTextStyle}>
                       This is a rollback. Original: {detail.rollback_info.rolled_back_from.commit_sha_short}
                     </p>
                   </div>
                   <button
                     type="button"
-                    className="dl-modal-ext-link"
+                    style={modalExtLinkStyle}
                     onClick={() => onOpenLinkedDeployment(detail.rollback_info!.rolled_back_from.id)}
                   >
                     Open original deployment
@@ -377,17 +780,17 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
               )}
 
               {detail.unified_status === "success" ? (
-                <div className="dl-modal-section">
-                  <div className="dl-modal-section-header">
-                    <RotateCcw size={14} color="#64748b" />
+                <div style={modalSectionStyle}>
+                  <div style={modalSectionHeaderStyle}>
+                    <RotateCcw size={14} color="var(--text-muted)" />
                     <span>Promote</span>
                   </div>
                   {promoteOptions.length === 0 ? (
-                    <p className="dl-modal-no-data">No target environments available for this repository.</p>
+                    <p style={noDataStyle}>No target environments available for this repository.</p>
                   ) : (
                     <>
                       <select
-                        className="analytics-repo-select"
+                        style={selectStyle}
                         value={promoteTargetId}
                         onChange={(event) => setPromoteTargetId(event.target.value)}
                       >
@@ -398,7 +801,11 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
                       </select>
                       <button
                         type="button"
-                        className="auth-btn auth-btn-primary"
+                        style={{
+                          ...primaryBtnStyle,
+                          opacity: !promoteTargetId || promoteLoading ? 0.5 : 1,
+                          cursor: !promoteTargetId || promoteLoading ? "not-allowed" : "pointer",
+                        }}
                         onClick={() => void handlePromote()}
                         disabled={!promoteTargetId || promoteLoading}
                       >
@@ -409,15 +816,15 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
                 </div>
               ) : null}
 
-              {actionError ? <div className="repo-toast-error drawer-toast">{actionError}</div> : null}
-              {actionSuccess ? <div className="repo-toast-success drawer-toast">{actionSuccess}</div> : null}
+              {actionError ? <div style={errorToastStyle}>{actionError}</div> : null}
+              {actionSuccess ? <div style={successToastStyle}>{actionSuccess}</div> : null}
             </>
           )}
         </div>
 
         {/* Footer */}
-        <div className="dl-modal-footer">
-          <button type="button" className="dl-modal-close-btn" onClick={onClose}>
+        <div style={modalFooterStyle}>
+          <button type="button" style={closeButtonStyle} onClick={onClose}>
             Close
           </button>
         </div>

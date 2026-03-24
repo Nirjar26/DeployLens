@@ -1,9 +1,9 @@
 import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useEffect, useMemo, useState } from "react";
-import Sidebar from "../components/dashboard/Sidebar";
 import { analytics, AnalyticsRange } from "../lib/api";
-import { useAuthStore } from "../store/authStore";
+import PageHeader from "../components/layout/PageHeader";
 import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../store/authStore";
 
 function formatDuration(seconds: number): string {
   if (!seconds || seconds < 0) return "0s";
@@ -109,20 +109,6 @@ export default function AnalyticsPage() {
     return list;
   }, [byRepo, repoSort]);
 
-  async function handleLogout() {
-    try {
-      await fetch(`${import.meta.env.VITE_API_URL ?? "http://localhost:3001"}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch {
-      // ignore
-    }
-
-    clearAuth();
-    navigate("/login", { replace: true });
-  }
-
   function toggleRepoSort(key: keyof RepoRow) {
     setRepoSort((current) => {
       if (current.key === key) {
@@ -134,34 +120,72 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="dl-dashboard-shell">
-      <Sidebar onLogout={handleLogout} />
-
-      <main className="dl-dashboard-main analytics-main">
-        <header className="dl-dashboard-topbar">
-          <h1 className="dl-page-title">Analytics</h1>
-          <div className="analytics-range-toggle">
+    <>
+      <PageHeader
+        title="Analytics"
+        actions={
+          <div style={{ display: "flex", gap: "8px" }}>
             {(["7d", "30d", "90d"] as AnalyticsRange[]).map((value) => (
               <button
                 key={value}
                 type="button"
-                className={`analytics-range-btn ${range === value ? "analytics-range-btn-active" : ""}`}
+                style={{
+                  height: "28px",
+                  padding: "0 14px",
+                  borderRadius: "var(--radius-full)",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  background: range === value ? "var(--bg-surface)" : "transparent",
+                  color: range === value ? "var(--text-primary)" : "var(--text-secondary)",
+                  border: "1px solid var(--border-light)",
+                  cursor: "pointer",
+                  transition: "all var(--transition-base)",
+                }}
                 onClick={() => setRange(value)}
               >
                 {value.toUpperCase()}
               </button>
             ))}
           </div>
-        </header>
+        }
+      />
 
-        <section className="analytics-overview-grid">
-          <div className="analytics-card"><span>Total</span><strong>{overview?.total_deployments ?? 0}</strong></div>
-          <div className="analytics-card"><span>Success rate</span><strong>{overview ? `${overview.success_rate}%` : "0%"}</strong></div>
-          <div className="analytics-card"><span>Failed</span><strong>{overview?.failed_count ?? 0}</strong></div>
-          <div className="analytics-card"><span>Rollbacks</span><strong>{overview?.rollback_count ?? 0}</strong></div>
-          <div className="analytics-card"><span>Avg duration</span><strong>{formatDuration(overview?.avg_duration_seconds ?? 0)}</strong></div>
-          <div className="analytics-card"><span>P95 duration</span><strong>{formatDuration(overview?.p95_duration_seconds ?? 0)}</strong></div>
-        </section>
+      <div style={{ padding: "24px 32px", display: "flex", flexDirection: "column", gap: "24px" }}>
+        {/* Overview cards */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "14px",
+        }}>
+          {[
+            { label: "Total", value: overview?.total_deployments ?? 0 },
+            { label: "Success rate", value: `${overview?.success_rate ?? 0}%` },
+            { label: "Failed", value: overview?.failed_count ?? 0 },
+            { label: "Rollbacks", value: overview?.rollback_count ?? 0 },
+            { label: "Avg duration", value: formatDuration(overview?.avg_duration_seconds ?? 0) },
+            { label: "P95 duration", value: formatDuration(overview?.p95_duration_seconds ?? 0) },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border-light)",
+                borderRadius: "var(--radius-lg)",
+                padding: "18px 20px",
+                boxShadow: "var(--shadow-xs)",
+              }}
+            >
+              <div style={{ fontSize: "12px", fontWeight: 500, color: "var(--text-secondary)", marginBottom: "10px" }}>
+                {stat.label}
+              </div>
+              <div style={{ fontSize: "28px", fontWeight: 800, color: "var(--text-primary)", lineHeight: 1 }}>
+                {stat.value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Charts and data sections - keeping existing structure but removing class names */}
 
         <section className="analytics-panel">
           <div className="analytics-panel-head">
@@ -321,7 +345,7 @@ export default function AnalyticsPage() {
             </table>
           </div>
         </section>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }

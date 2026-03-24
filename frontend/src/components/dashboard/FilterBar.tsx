@@ -1,3 +1,4 @@
+import { CSSProperties } from "react";
 import { Search, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "../../store/authStore";
@@ -33,47 +34,166 @@ export default function FilterBar({ filters, onChangeFilter, onClear, compareMod
     return Boolean(filters.repo || filters.environment || filters.status || filters.branch || filters.from || filters.to);
   }, [filters]);
 
+  const filterCardStyle: CSSProperties = {
+    backgroundColor: "var(--bg-surface)",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-lg)",
+    padding: "16px 20px",
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
+  };
+
+  const filterRowStyle: CSSProperties = {
+    display: "flex",
+    gap: "12px",
+    alignItems: "center",
+    flexWrap: "wrap",
+  };
+
+  const selectWrapStyle: CSSProperties = {
+    position: "relative",
+    minWidth: "120px",
+    flex: 1,
+  };
+
+  const selectStyle: CSSProperties = {
+    width: "100%",
+    height: "36px",
+    padding: "0 12px 0 12px",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--bg-sunken)",
+    color: "var(--text-primary)",
+    fontSize: "13px",
+    fontWeight: 500,
+    cursor: "pointer",
+    appearance: "none",
+    transition: "all var(--transition-fast)",
+  };
+
+  const selectArrowStyle: CSSProperties = {
+    position: "absolute",
+    right: "8px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    pointerEvents: "none",
+  };
+
+  const clearBtnStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    padding: "6px 12px",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--bg-sunken)",
+    color: "var(--text-secondary)",
+    fontSize: "13px",
+    fontWeight: 500,
+    cursor: "pointer",
+    transition: "all var(--transition-fast)",
+  };
+
+  const compareToggleStyle: CSSProperties = {
+    ...clearBtnStyle,
+    ...(compareMode && {
+      backgroundColor: "var(--accent-light)",
+      color: "var(--accent)",
+      borderColor: "var(--accent-border)",
+    }),
+  };
+
+  const branchWrapStyle: CSSProperties = {
+    position: "relative",
+    flex: 1,
+    minWidth: "200px",
+  };
+
+  const branchIconStyle: CSSProperties = {
+    position: "absolute",
+    left: "12px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    color: "var(--text-muted)",
+    pointerEvents: "none",
+  };
+
+  const filterInputStyle: CSSProperties = {
+    width: "100%",
+    height: "36px",
+    padding: "8px 12px",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--bg-sunken)",
+    color: "var(--text-primary)",
+    fontSize: "13px",
+    transition: "all var(--transition-fast)",
+  };
+
+  const branchInputStyle: CSSProperties = {
+    ...filterInputStyle,
+    paddingLeft: "36px",
+  };
+
+  const dateFieldStyle: CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  };
+
+  const dateLabelStyle: CSSProperties = {
+    fontSize: "12px",
+    fontWeight: 500,
+    color: "var(--text-muted)",
+  };
+
+  const dateInputStyle: CSSProperties = {
+    ...filterInputStyle,
+    width: "140px",
+  };
+
   return (
-    <div className="dl-filter-card">
+    <div style={filterCardStyle}>
       {/* Row 1: Dropdowns + Clear */}
-      <div className="dl-filter-row">
-        <div className="dl-select-wrap">
+      <div style={filterRowStyle}>
+        <div style={selectWrapStyle}>
           <select
             value={filters.repo}
             onChange={(e) => void onChangeFilter("repo", e.target.value)}
-            className="dl-filter-select"
+            style={selectStyle}
           >
             <option value="">All repos</option>
             {trackedRepos.map((repo) => (
               <option key={repo.id} value={repo.full_name}>{repo.full_name}</option>
             ))}
           </select>
-          <svg className="dl-select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none">
-            <path d="M1 1L5 5L9 1" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg style={selectArrowStyle} width="10" height="6" viewBox="0 0 10 6" fill="none">
+            <path d="M1 1L5 5L9 1" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
 
-        <div className="dl-select-wrap">
+        <div style={selectWrapStyle}>
           <select
             value={filters.environment}
             onChange={(e) => void onChangeFilter("environment", e.target.value)}
-            className="dl-filter-select"
+            style={selectStyle}
           >
             <option value="">All environments</option>
             {environments.map((env) => (
               <option key={env.id} value={env.display_name}>{env.display_name}</option>
             ))}
           </select>
-          <svg className="dl-select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none">
-            <path d="M1 1L5 5L9 1" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg style={selectArrowStyle} width="10" height="6" viewBox="0 0 10 6" fill="none">
+            <path d="M1 1L5 5L9 1" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
 
-        <div className="dl-select-wrap">
+        <div style={selectWrapStyle}>
           <select
             value={filters.status}
             onChange={(e) => void onChangeFilter("status", e.target.value)}
-            className="dl-filter-select"
+            style={selectStyle}
           >
             <option value="">All statuses</option>
             <option value="pending">Pending</option>
@@ -82,13 +202,13 @@ export default function FilterBar({ filters, onChangeFilter, onClear, compareMod
             <option value="failed">Failed</option>
             <option value="rolled_back">Rolled back</option>
           </select>
-          <svg className="dl-select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none">
-            <path d="M1 1L5 5L9 1" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg style={selectArrowStyle} width="10" height="6" viewBox="0 0 10 6" fill="none">
+            <path d="M1 1L5 5L9 1" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
 
         {hasActive && (
-          <button type="button" className="dl-clear-btn" onClick={onClear}>
+          <button type="button" style={clearBtnStyle} onClick={onClear}>
             <X size={12} />
             Clear filters
           </button>
@@ -96,7 +216,7 @@ export default function FilterBar({ filters, onChangeFilter, onClear, compareMod
 
         <button
           type="button"
-          className={`dl-clear-btn dl-compare-toggle ${compareMode ? "dl-compare-toggle-active" : ""}`}
+          style={compareToggleStyle}
           onClick={onToggleCompareMode}
         >
           {compareMode ? "Exit compare" : "Compare deployments"}
@@ -104,21 +224,21 @@ export default function FilterBar({ filters, onChangeFilter, onClear, compareMod
       </div>
 
       {/* Row 2: Branch input + date range */}
-      <div className="dl-filter-row dl-filter-row-2">
-        <div className="dl-branch-wrap">
-          <Search size={14} className="dl-branch-icon" />
+      <div style={filterRowStyle}>
+        <div style={branchWrapStyle}>
+          <Search size={14} style={branchIconStyle} />
           <input
-            className="dl-filter-input dl-branch-input"
+            style={branchInputStyle}
             placeholder="Filter by branch..."
             value={branchInput}
             onChange={(e) => setBranchInput(e.target.value)}
           />
         </div>
 
-        <div className="dl-date-field">
-          <label className="dl-date-label">From</label>
+        <div style={dateFieldStyle}>
+          <label style={dateLabelStyle}>From</label>
           <input
-            className="dl-filter-input dl-date-input"
+            style={dateInputStyle}
             type="date"
             value={filters.from ? filters.from.slice(0, 10) : ""}
             onChange={(e) =>
@@ -127,10 +247,10 @@ export default function FilterBar({ filters, onChangeFilter, onClear, compareMod
           />
         </div>
 
-        <div className="dl-date-field">
-          <label className="dl-date-label">To</label>
+        <div style={dateFieldStyle}>
+          <label style={dateLabelStyle}>To</label>
           <input
-            className="dl-filter-input dl-date-input"
+            style={dateInputStyle}
             type="date"
             value={filters.to ? filters.to.slice(0, 10) : ""}
             onChange={(e) =>

@@ -1,3 +1,4 @@
+import { CSSProperties } from "react";
 import { useState } from "react";
 import { DeploymentRow as DeploymentRowType, PaginationInfo } from "../../store/deploymentStore";
 import DeploymentRow from "./DeploymentRow";
@@ -52,14 +53,176 @@ export default function PipelineTable({
     pageNumbers.push(i);
   }
 
+  const pipelineCardStyle: CSSProperties = {
+    backgroundColor: "var(--bg-surface)",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-lg)",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+  };
+
+  const compareBannerStyle: CSSProperties = {
+    backgroundColor: "var(--bg-sunken)",
+    border: "1px solid var(--border-light)",
+    borderBottom: "1px solid var(--border-light)",
+    padding: "12px 20px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "var(--text-secondary)",
+  };
+
+  const viewBtnStyle: CSSProperties = {
+    padding: "6px 12px",
+    backgroundColor: "var(--accent)",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "var(--radius-md)",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all var(--transition-fast)",
+  };
+
+  const tableStyle: CSSProperties = {
+    width: "100%",
+    borderCollapse: "collapse",
+    fontSize: "13px",
+  };
+
+  const tableHeadStyle: CSSProperties = {
+    backgroundColor: "var(--bg-sunken)",
+    borderBottom: "1px solid var(--border-light)",
+  };
+
+  const theadThStyle: CSSProperties = {
+    padding: "12px 16px",
+    textAlign: "left",
+    fontWeight: 600,
+    color: "var(--text-secondary)",
+    fontSize: "12px",
+    textTransform: "uppercase",
+    letterSpacing: "0.5px",
+  };
+
+  const tableBodyStyle: CSSProperties = {
+    // table content
+  };
+
+  const paginationStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "16px",
+    padding: "16px 20px",
+    borderTop: "1px solid var(--border-light)",
+    backgroundColor: "var(--bg-sunken)",
+    fontSize: "13px",
+  };
+
+  const paginationInfoStyle: CSSProperties = {
+    color: "var(--text-secondary)",
+    fontWeight: 500,
+  };
+
+  const paginationCenterStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  };
+
+  const pageBtnStyle: CSSProperties = {
+    padding: "6px 10px",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--bg-surface)",
+    color: "var(--text-primary)",
+    cursor: "pointer",
+    fontSize: "13px",
+    fontWeight: 500,
+    transition: "all var(--transition-fast)",
+  };
+
+  const pageBtnActiveStyle: CSSProperties = {
+    ...pageBtnStyle,
+    backgroundColor: "var(--accent)",
+    color: "#ffffff",
+    borderColor: "var(--accent)",
+  };
+
+  const pageBtnDisabledStyle: CSSProperties = {
+    ...pageBtnStyle,
+    opacity: 0.5,
+    cursor: "not-allowed",
+  };
+
+  const pageJumpStyle: CSSProperties = {
+    width: "60px",
+    padding: "6px 10px",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--bg-surface)",
+    color: "var(--text-primary)",
+    fontSize: "13px",
+    fontWeight: 500,
+    textAlign: "center",
+  };
+
+  const paginationRightStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+  };
+
+  const paginationShowLabelStyle: CSSProperties = {
+    color: "var(--text-secondary)",
+    fontWeight: 500,
+  };
+
+  const selectWrapSmStyle: CSSProperties = {
+    position: "relative",
+    width: "70px",
+  };
+
+  const selectStyle: CSSProperties = {
+    width: "100%",
+    height: "32px",
+    padding: "4px 8px 4px 8px",
+    border: "1px solid var(--border-light)",
+    borderRadius: "var(--radius-md)",
+    backgroundColor: "var(--bg-surface)",
+    color: "var(--text-primary)",
+    fontSize: "13px",
+    fontWeight: 500,
+    cursor: "pointer",
+    appearance: "none",
+    transition: "all var(--transition-fast)",
+  };
+
+  const selectArrowStyle: CSSProperties = {
+    position: "absolute",
+    right: "6px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    pointerEvents: "none",
+  };
+
   return (
-    <div className="dl-pipeline-card">
+    <div style={pipelineCardStyle}>
       {compareMode && (
-        <div className="dl-compare-banner">
+        <div style={compareBannerStyle}>
           <span>Select exactly two deployments to compare ({compareSelection.length}/2 selected)</span>
           <button
             type="button"
-            className="dl-view-btn"
+            style={{
+              ...viewBtnStyle,
+              opacity: compareSelection.length !== 2 ? 0.5 : 1,
+              cursor: compareSelection.length !== 2 ? "not-allowed" : "pointer",
+            }}
             disabled={compareSelection.length !== 2}
             onClick={onOpenCompare}
           >
@@ -68,21 +231,21 @@ export default function PipelineTable({
         </div>
       )}
 
-      <table className="dl-pipeline-table">
-        <thead>
+      <table style={tableStyle}>
+        <thead style={tableHeadStyle}>
           <tr>
-            {compareMode ? <th style={{ width: 56 }}>Pick</th> : null}
-            <th style={{ width: 130 }}>Status</th>
-            <th>Repo</th>
-            <th>Branch / Commit</th>
-            <th>Environment</th>
-            <th>Triggered by</th>
-            <th>Duration</th>
-            <th>Time</th>
-            <th style={{ width: 80 }}>Actions</th>
+            {compareMode ? <th style={{ ...theadThStyle, width: 56 }}>Pick</th> : null}
+            <th style={{ ...theadThStyle, width: 130 }}>Status</th>
+            <th style={theadThStyle}>Repo</th>
+            <th style={theadThStyle}>Branch / Commit</th>
+            <th style={theadThStyle}>Environment</th>
+            <th style={theadThStyle}>Triggered by</th>
+            <th style={theadThStyle}>Duration</th>
+            <th style={theadThStyle}>Time</th>
+            <th style={{ ...theadThStyle, width: 80 }}>Actions</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody style={tableBodyStyle}>
           {rows.map((row) => (
             <DeploymentRow
               key={row.id}
@@ -97,17 +260,17 @@ export default function PipelineTable({
       </table>
 
       {pagination && (
-        <div className="dl-pagination">
-          <span className="dl-pagination-info">
+        <div style={paginationStyle}>
+          <span style={paginationInfoStyle}>
             Showing {(pagination.page - 1) * pagination.limit + 1}–
             {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
             {pagination.total} deployments
           </span>
 
-          <div className="dl-pagination-center">
+          <div style={paginationCenterStyle}>
             <button
               type="button"
-              className="dl-page-btn"
+              style={!pagination.hasPrev ? pageBtnDisabledStyle : pageBtnStyle}
               disabled={!pagination.hasPrev}
               onClick={() => onSetPage(pagination.page - 1)}
             >
@@ -118,7 +281,7 @@ export default function PipelineTable({
               <button
                 key={num}
                 type="button"
-                className={`dl-page-btn ${num === currentPage ? "dl-page-btn-active" : ""}`}
+                style={num === currentPage ? pageBtnActiveStyle : pageBtnStyle}
                 onClick={() => onSetPage(num)}
               >
                 {num}
@@ -127,7 +290,7 @@ export default function PipelineTable({
 
             <button
               type="button"
-              className="dl-page-btn"
+              style={!pagination.hasNext ? pageBtnDisabledStyle : pageBtnStyle}
               disabled={!pagination.hasNext}
               onClick={() => onSetPage(pagination.page + 1)}
             >
@@ -136,7 +299,7 @@ export default function PipelineTable({
 
             <input
               type="number"
-              className="dl-page-jump"
+              style={pageJumpStyle}
               placeholder="Go to"
               value={jumpPage}
               min={1}
@@ -153,11 +316,11 @@ export default function PipelineTable({
             />
           </div>
 
-          <div className="dl-pagination-right">
-            <span className="dl-pagination-show-label">Show:</span>
-            <div className="dl-select-wrap dl-select-wrap-sm">
+          <div style={paginationRightStyle}>
+            <span style={paginationShowLabelStyle}>Show:</span>
+            <div style={selectWrapSmStyle}>
               <select
-                className="dl-filter-select"
+                style={selectStyle}
                 value={pagination.limit}
                 onChange={(e) => onSetLimit(Number.parseInt(e.target.value, 10))}
               >
@@ -165,8 +328,8 @@ export default function PipelineTable({
                 <option value={50}>50</option>
                 <option value={100}>100</option>
               </select>
-              <svg className="dl-select-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none">
-                <path d="M1 1L5 5L9 1" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              <svg style={selectArrowStyle} width="10" height="6" viewBox="0 0 10 6" fill="none">
+                <path d="M1 1L5 5L9 1" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
           </div>

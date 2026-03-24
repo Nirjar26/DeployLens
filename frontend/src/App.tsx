@@ -9,7 +9,13 @@ import ConnectAwsPage from "./pages/onboarding/ConnectAwsPage";
 import MapEnvironmentsPage from "./pages/onboarding/MapEnvironmentsPage";
 import DashboardPage from "./pages/DashboardPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
-import SettingsPage from "./pages/SettingsPage";
+import ProtectedLayout from "./components/layout/ProtectedLayout";
+import IntegrationsPage from "./pages/settings/IntegrationsPage";
+import RepositoriesPage from "./pages/settings/RepositoriesPage";
+import EnvironmentsPage from "./pages/settings/EnvironmentsPage";
+import ProfilePage from "./pages/settings/ProfilePage";
+import SecurityPage from "./pages/settings/SecurityPage";
+import AuditLogPage from "./pages/settings/AuditLogPage";
 import { setAuthFailureHandler } from "./lib/api";
 import { useSocket } from "./hooks/useSocket";
 import { useAuthStore } from "./store/authStore";
@@ -122,11 +128,15 @@ export default function App() {
         <Route path="aws" element={<ConnectAwsPage />} />
         <Route path="environments" element={<MapEnvironmentsPage />} />
       </Route>
+
+      {/* Protected pages with sidebar */}
       <Route
         path="/dashboard"
         element={
           <ProtectedRoute>
-            <DashboardPage />
+            <ProtectedLayout onLogout={clearAuth}>
+              <DashboardPage />
+            </ProtectedLayout>
           </ProtectedRoute>
         }
       />
@@ -134,18 +144,75 @@ export default function App() {
         path="/analytics"
         element={
           <ProtectedRoute>
-            <AnalyticsPage />
+            <ProtectedLayout onLogout={clearAuth}>
+              <AnalyticsPage />
+            </ProtectedLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Settings pages */}
+      <Route
+        path="/settings/integrations"
+        element={
+          <ProtectedRoute>
+            <ProtectedLayout onLogout={clearAuth}>
+              <IntegrationsPage />
+            </ProtectedLayout>
           </ProtectedRoute>
         }
       />
       <Route
-        path="/settings"
+        path="/settings/repositories"
         element={
           <ProtectedRoute>
-            <SettingsPage />
+            <ProtectedLayout onLogout={clearAuth}>
+              <RepositoriesPage />
+            </ProtectedLayout>
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/settings/environments"
+        element={
+          <ProtectedRoute>
+            <ProtectedLayout onLogout={clearAuth}>
+              <EnvironmentsPage />
+            </ProtectedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/profile"
+        element={
+          <ProtectedRoute>
+            <ProtectedLayout onLogout={clearAuth}>
+              <ProfilePage />
+            </ProtectedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/security"
+        element={
+          <ProtectedRoute>
+            <ProtectedLayout onLogout={clearAuth}>
+              <SecurityPage />
+            </ProtectedLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings/audit"
+        element={
+          <ProtectedRoute>
+            <ProtectedLayout onLogout={clearAuth}>
+              <AuditLogPage />
+            </ProtectedLayout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="*" element={<AuthAwareRedirect />} />
     </Routes>
   );
