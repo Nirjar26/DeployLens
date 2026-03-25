@@ -7,6 +7,7 @@ const router = Router();
 router.use(verifyToken);
 router.get("/", deploymentController.getDeployments);
 router.get("/stats", deploymentController.getStats);
+router.get("/last-good", deploymentController.getLastGoodDeployment);
 router.get("/environments/latest", deploymentController.getEnvironmentsLatest);
 router.get("/compare", deploymentController.compareDeployments);
 router.post("/:id/promote", deploymentController.promoteDeployment);

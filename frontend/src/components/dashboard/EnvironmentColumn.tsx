@@ -232,6 +232,60 @@ export default function EnvironmentColumn({ item, onOpen, onViewAll }: Props) {
     transition: "all var(--transition-fast)",
   };
 
+  const gradeMeta = (() => {
+    const statuses = item.recent_statuses ?? [];
+    if (statuses.length === 0) {
+      return {
+        grade: "—",
+        color: "var(--text-muted)",
+        background: "var(--bg-sunken)",
+        border: "var(--border-light)",
+        sample: 0,
+      };
+    }
+
+    const successCount = statuses.filter((status) => status === "success").length;
+    const rate = (successCount / statuses.length) * 100;
+
+    if (rate >= 90) {
+      return {
+        grade: "A",
+        color: "var(--status-success-text)",
+        background: "var(--status-success-bg)",
+        border: "var(--status-success-border)",
+        sample: statuses.length,
+      };
+    }
+
+    if (rate >= 75) {
+      return {
+        grade: "B",
+        color: "var(--status-success-text)",
+        background: "var(--status-success-bg)",
+        border: "var(--status-success-border)",
+        sample: statuses.length,
+      };
+    }
+
+    if (rate >= 50) {
+      return {
+        grade: "C",
+        color: "var(--status-warning-text)",
+        background: "var(--status-warning-bg)",
+        border: "var(--status-warning-border)",
+        sample: statuses.length,
+      };
+    }
+
+    return {
+      grade: "F",
+      color: "var(--status-failed-text)",
+      background: "var(--status-failed-bg)",
+      border: "var(--status-failed-border)",
+      sample: statuses.length,
+    };
+  })();
+
   return (
     <div style={columnStyle}>
       {/* Column Header */}
@@ -241,7 +295,27 @@ export default function EnvironmentColumn({ item, onOpen, onViewAll }: Props) {
             <span style={{ ...envDotLgStyle, background: item.environment.color_tag }} />
             <span>{item.environment.display_name}</span>
           </div>
-          <span style={colTodayStyle}>{item.total_today} today</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span
+              title={`Based on last ${gradeMeta.sample} deployments`}
+              style={{
+                width: "22px",
+                height: "22px",
+                borderRadius: "var(--radius-sm)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "11px",
+                fontWeight: 800,
+                border: `1px solid ${gradeMeta.border}`,
+                color: gradeMeta.color,
+                background: gradeMeta.background,
+              }}
+            >
+              {gradeMeta.grade}
+            </span>
+            <span style={colTodayStyle}>{item.total_today} today</span>
+          </div>
         </div>
         <div style={colRateStyle}>
           {item.success_rate}% success

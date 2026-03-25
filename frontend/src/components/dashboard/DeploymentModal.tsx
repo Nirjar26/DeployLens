@@ -444,7 +444,7 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
   const modalRollbackBtnStyle: CSSProperties = {
     padding: "8px 12px",
     backgroundColor: "var(--status-failed)",
-    color: "#ffffff",
+    color: "var(--text-on-accent)",
     border: "none",
     borderRadius: "var(--radius-md)",
     fontSize: "13px",
@@ -486,7 +486,7 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
   const primaryBtnStyle: CSSProperties = {
     padding: "8px 16px",
     backgroundColor: "var(--accent)",
-    color: "#ffffff",
+    color: "var(--text-on-accent)",
     border: "none",
     borderRadius: "var(--radius-md)",
     fontSize: "13px",

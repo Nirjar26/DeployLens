@@ -11,9 +11,10 @@ type Props = {
   onClear: () => void;
   compareMode: boolean;
   onToggleCompareMode: () => void;
+  onToggleMine?: (triggeredBy: string | null) => void;
 };
 
-export default function FilterBar({ filters, onChangeFilter, onClear, compareMode, onToggleCompareMode }: Props) {
+export default function FilterBar({ filters, onChangeFilter, onClear, compareMode, onToggleCompareMode, onToggleMine }: Props) {
   const trackedRepos = useAuthStore((state) => state.trackedRepos);
   const environments = useAwsStore((state) => state.environments);
   const [branchInput, setBranchInput] = useState(filters.branch);
@@ -98,6 +99,15 @@ export default function FilterBar({ filters, onChangeFilter, onClear, compareMod
   const compareToggleStyle: CSSProperties = {
     ...clearBtnStyle,
     ...(compareMode && {
+      backgroundColor: "var(--accent-light)",
+      color: "var(--accent)",
+      borderColor: "var(--accent-border)",
+    }),
+  };
+
+  const mineToggleStyle: CSSProperties = {
+    ...clearBtnStyle,
+    ...(!!filters.triggered_by && {
       backgroundColor: "var(--accent-light)",
       color: "var(--accent)",
       borderColor: "var(--accent-border)",
@@ -214,6 +224,22 @@ export default function FilterBar({ filters, onChangeFilter, onClear, compareMod
           </button>
         )}
 
+        {onToggleMine && (
+          <button
+            type="button"
+            style={mineToggleStyle}
+            onClick={() => {
+              if (filters.triggered_by) {
+                onToggleMine(null);
+              } else {
+                onToggleMine("");
+              }
+            }}
+          >
+            Mine
+          </button>
+        )}
+
         <button
           type="button"
           style={compareToggleStyle}
@@ -232,6 +258,7 @@ export default function FilterBar({ filters, onChangeFilter, onClear, compareMod
             placeholder="Filter by branch..."
             value={branchInput}
             onChange={(e) => setBranchInput(e.target.value)}
+                     data-branch-input
           />
         </div>
 

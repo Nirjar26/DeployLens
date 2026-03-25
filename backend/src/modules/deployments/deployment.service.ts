@@ -17,6 +17,9 @@ type DeploymentFilters = {
   to?: string;
   page: number;
   limit: number;
+  sort_by?: string;
+  sort_dir?: string;
+  triggered_by?: string;
 };
 
 function shortSha(sha: string | null): string {
@@ -42,6 +45,7 @@ function mapDeploymentRow(deployment: any) {
     started_at: deployment.started_at?.toISOString() ?? null,
     finished_at: deployment.finished_at?.toISOString() ?? null,
     duration_seconds: deployment.duration_seconds,
+    is_first_deploy: Boolean(deployment.is_first_deploy),
     created_at: deployment.created_at.toISOString(),
     repository: {
       id: deployment.repository.id,
@@ -94,11 +98,23 @@ function buildWhere(userId: string, filters: DeploymentFilters) {
     };
   }
 
+  if (filters.triggered_by) {
+    where.triggered_by = filters.triggered_by;
+  }
+
   return where;
 }
 
 export async function listDeployments(userId: string, filters: DeploymentFilters) {
   const where = buildWhere(userId, filters);
+
+  // Validate and set sort field
+  const validSortFields = ["created_at", "duration_seconds", "unified_status"];
+  const sortField = validSortFields.includes(filters.sort_by || "")
+    ? filters.sort_by
+    : "created_at";
+
+  const sortDirection = filters.sort_dir === "asc" ? "asc" : "desc";
 
   const [total, rows] = await Promise.all([
     prisma.deployment.count({ where }),
@@ -121,16 +137,54 @@ export async function listDeployments(userId: string, filters: DeploymentFilters
           },
         },
       },
-      orderBy: { created_at: "desc" },
+      orderBy: { [sortField]: sortDirection },
       skip: (filters.page - 1) * filters.limit,
       take: filters.limit,
     }),
   ]);
 
+  const uniqueRepoEnv = Array.from(new Set(
+    rows
+      .filter((row: any) => row.environment_id)
+      .map((row: any) => `${row.repository_id}::${row.environment_id}`),
+  ));
+
+  const firstDeployByCombo = new Map<string, string>();
+  await Promise.all(
+    uniqueRepoEnv.map(async (combo) => {
+      const [repository_id, environment_id] = combo.split("::");
+      const first = await prisma.deployment.findFirst({
+        where: {
+          user_id: userId,
+          repository_id,
+          environment_id,
+        },
+        orderBy: [{ created_at: "asc" }, { id: "asc" }],
+        select: { id: true },
+      });
+
+      if (first?.id) {
+        firstDeployByCombo.set(combo, first.id);
+      }
+    }),
+  );
+
+  const rowsWithFirstFlag = rows.map((row: any) => {
+    if (!row.environment_id) {
+      return { ...row, is_first_deploy: false };
+    }
+
+    const combo = `${row.repository_id}::${row.environment_id}`;
+    return {
+      ...row,
+      is_first_deploy: firstDeployByCombo.get(combo) === row.id,
+    };
+  });
+
   const totalPages = Math.max(1, Math.ceil(total / filters.limit));
 
   return {
-    deployments: rows.map(mapDeploymentRow),
+    deployments: rowsWithFirstFlag.map(mapDeploymentRow),
     pagination: {
       total,
       page: filters.page,
@@ -253,13 +307,9 @@ export async function getEnvironmentLatest(userId: string) {
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
 
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  sevenDaysAgo.setHours(0, 0, 0, 0);
-
   const results = await Promise.all(
     environments.map(async (env: any) => {
-      const [latest, totalToday, sevenDayRows] = await Promise.all([
+      const [latest, totalToday, recentStatusesRows, recentDeployments] = await Promise.all([
         prisma.deployment.findFirst({
           where: {
             user_id: userId,
@@ -282,16 +332,29 @@ export async function getEnvironmentLatest(userId: string) {
           where: {
             user_id: userId,
             environment_id: env.id,
-            created_at: { gte: sevenDaysAgo },
           },
           select: {
             unified_status: true,
           },
+          orderBy: { created_at: "desc" },
+          take: 10,
+        }),
+        prisma.deployment.findMany({
+          where: {
+            user_id: userId,
+            environment_id: env.id,
+          },
+          include: {
+            repository: { select: { id: true, full_name: true, owner: true, name: true } },
+            environment: { select: { id: true, display_name: true, color_tag: true } },
+          },
+          orderBy: { created_at: "desc" },
+          take: 5,
         }),
       ]);
 
-      const successCount = sevenDayRows.filter((row: any) => row.unified_status === "success").length;
-      const successRate = sevenDayRows.length === 0 ? 0 : Math.round((successCount / sevenDayRows.length) * 100);
+      const successCount = recentStatusesRows.filter((row: any) => row.unified_status === "success").length;
+      const successRate = recentStatusesRows.length === 0 ? 0 : Math.round((successCount / recentStatusesRows.length) * 100);
 
       return {
         environment: {
@@ -300,6 +363,8 @@ export async function getEnvironmentLatest(userId: string) {
           color_tag: env.color_tag,
         },
         latest_deployment: latest ? mapDeploymentRow(latest) : null,
+        recent_deployments: recentDeployments.map(mapDeploymentRow),
+        recent_statuses: recentStatusesRows.map((row: any) => row.unified_status),
         total_today: totalToday,
         success_rate: successRate,
       };
@@ -317,12 +382,27 @@ export async function getDeploymentStats(userId: string) {
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   sevenDaysAgo.setHours(0, 0, 0, 0);
 
+  const fourteenDaysAgo = new Date();
+  fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+  fourteenDaysAgo.setHours(0, 0, 0, 0);
+
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  thirtyDaysAgo.setHours(0, 0, 0, 0);
+
   const [
     totalToday,
     successToday,
     failedToday,
     runningNow,
     sevenDayRows,
+    statusCounts,
+    previousSevenDayRows,
+    thirtyDayTotal,
+    rollbackCount7d,
+    topDeployersRaw,
+    e2eRows,
+    recentDaily,
   ] = await Promise.all([
     prisma.deployment.count({
       where: {
@@ -361,6 +441,72 @@ export async function getDeploymentStats(userId: string) {
         duration_seconds: true,
       },
     }),
+    prisma.deployment.groupBy({
+      by: ["unified_status"],
+      where: { user_id: userId },
+      _count: { id: true },
+    }),
+    prisma.deployment.findMany({
+      where: {
+        user_id: userId,
+        finished_at: { gte: fourteenDaysAgo, lt: sevenDaysAgo },
+        duration_seconds: { not: null },
+      },
+      select: {
+        unified_status: true,
+        duration_seconds: true,
+      },
+    }),
+    prisma.deployment.count({
+      where: {
+        user_id: userId,
+        created_at: { gte: thirtyDaysAgo },
+      },
+    }),
+    prisma.deployment.count({
+      where: {
+        user_id: userId,
+        unified_status: "rolled_back",
+        created_at: { gte: sevenDaysAgo },
+      },
+    }),
+    prisma.deployment.groupBy({
+      by: ["triggered_by"],
+      where: {
+        user_id: userId,
+        created_at: { gte: sevenDaysAgo },
+        triggered_by: { not: null },
+      },
+      _count: { id: true },
+      orderBy: {
+        _count: {
+          id: "desc",
+        },
+      },
+      take: 5,
+    }),
+    prisma.deployment.findMany({
+      where: {
+        user_id: userId,
+        github_status: "success",
+        codedeploy_status: "Succeeded",
+        started_at: { not: null },
+        finished_at: { not: null, gte: sevenDaysAgo },
+      },
+      select: {
+        started_at: true,
+        finished_at: true,
+      },
+    }),
+    prisma.deployment.groupBy({
+      by: ["created_at"],
+      where: {
+        user_id: userId,
+        created_at: { gte: sevenDaysAgo },
+      },
+      _count: { id: true },
+      orderBy: { created_at: "asc" },
+    }),
   ]);
 
   const success7d = sevenDayRows.filter((row: any) => row.unified_status === "success").length;
@@ -374,13 +520,151 @@ export async function getDeploymentStats(userId: string) {
     ? 0
     : Math.round(durations.reduce((sum: number, value: number) => sum + value, 0) / durations.length);
 
+  const prevSuccess7d = previousSevenDayRows.filter((row: any) => row.unified_status === "success").length;
+  const successRatePrev7d = previousSevenDayRows.length === 0
+    ? 0
+    : Math.round((prevSuccess7d / previousSevenDayRows.length) * 100);
+
+  const prevDurations = previousSevenDayRows
+    .map((row: any) => row.duration_seconds)
+    .filter((value: number | null) => typeof value === "number" && value >= 0);
+
+  const avgDurationPrev7d = prevDurations.length === 0
+    ? 0
+    : Math.round(prevDurations.reduce((sum: number, value: number) => sum + value, 0) / prevDurations.length);
+
+  const avgE2ESeconds = e2eRows.length === 0
+    ? null
+    : Math.round(
+      e2eRows.reduce((sum: number, row: any) => {
+        const started = row.started_at ? new Date(row.started_at).getTime() : 0;
+        const finished = row.finished_at ? new Date(row.finished_at).getTime() : 0;
+        if (!started || !finished || finished < started) return sum;
+        return sum + Math.round((finished - started) / 1000);
+      }, 0) / e2eRows.length,
+    );
+
+  const thirtyDayDailyAvg = Number((thirtyDayTotal / 30).toFixed(2));
+
+  const dayMap = new Map<string, number>();
+  for (let i = 6; i >= 0; i -= 1) {
+    const day = new Date();
+    day.setDate(day.getDate() - i);
+    day.setHours(0, 0, 0, 0);
+    const key = day.toISOString().slice(0, 10);
+    dayMap.set(key, 0);
+  }
+
+  recentDaily.forEach((item: any) => {
+    const key = new Date(item.created_at).toISOString().slice(0, 10);
+    if (dayMap.has(key)) {
+      dayMap.set(key, (dayMap.get(key) ?? 0) + item._count.id);
+    }
+  });
+
+  const topDeployers = topDeployersRaw
+    .filter((row: any) => row.triggered_by)
+    .map((row: any) => ({
+      triggered_by: String(row.triggered_by),
+      count: row._count.id,
+    }));
+
+  // Map status counts
+  const byStatus = {
+    pending: 0,
+    running: 0,
+    success: 0,
+    failed: 0,
+    rolled_back: 0,
+    total: 0,
+  };
+
+  statusCounts.forEach((item: any) => {
+    const status = item.unified_status as string;
+    const count = item._count.id;
+    if (status in byStatus) {
+      (byStatus as any)[status] = count;
+    }
+    byStatus.total += count;
+  });
+
   return {
     total_today: totalToday,
     success_today: successToday,
     failed_today: failedToday,
     running_now: runningNow,
     success_rate_7d: successRate7d,
+    success_rate_prev_7d: successRatePrev7d,
     avg_duration_7d: avgDuration7d,
+    avg_duration_prev_7d: avgDurationPrev7d,
+    avg_e2e_seconds: avgE2ESeconds,
+    rollback_count_7d: rollbackCount7d,
+    thirty_day_daily_avg: thirtyDayDailyAvg,
+    top_deployers: topDeployers,
+    last_7_days: Array.from(dayMap.entries()).map(([date, total]) => ({ date, total })),
+    by_status: byStatus,
+  };
+}
+
+export async function getLastGoodDeployment(userId: string) {
+  let latest = await prisma.deployment.findFirst({
+    where: {
+      user_id: userId,
+      unified_status: "success",
+      OR: [
+        { environment: { display_name: { contains: "prod", mode: "insensitive" } } },
+        { environment: { color_tag: "#ef4444" } },
+      ],
+    },
+    include: {
+      repository: {
+        select: {
+          name: true,
+        },
+      },
+      environment: {
+        select: {
+          display_name: true,
+        },
+      },
+    },
+    orderBy: [{ finished_at: "desc" }, { created_at: "desc" }],
+  });
+
+  if (!latest) {
+    latest = await prisma.deployment.findFirst({
+      where: {
+        user_id: userId,
+        unified_status: "success",
+      },
+      include: {
+        repository: {
+          select: {
+            name: true,
+          },
+        },
+        environment: {
+          select: {
+            display_name: true,
+          },
+        },
+      },
+      orderBy: [{ finished_at: "desc" }, { created_at: "desc" }],
+    });
+  }
+
+  if (!latest) {
+    return null;
+  }
+
+  return {
+    id: latest.id,
+    commit_sha_short: shortSha(latest.commit_sha),
+    commit_message: latest.commit_message ?? "",
+    triggered_by: latest.triggered_by ?? "unknown",
+    finished_at: (latest.finished_at ?? latest.created_at).toISOString(),
+    environment_display_name: latest.environment?.display_name ?? "unknown",
+    repository_name: latest.repository?.name ?? "unknown",
   };
 }
 

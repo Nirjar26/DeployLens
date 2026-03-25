@@ -9,7 +9,17 @@ import EnvironmentSwimlanes from "../components/dashboard/EnvironmentSwimlanes";
 import FilterBar from "../components/dashboard/FilterBar";
 import PipelineTable from "../components/dashboard/PipelineTable";
 import StatsRow from "../components/dashboard/StatsRow";
+import ActiveDeploymentsBanner from "../components/dashboard/ActiveDeploymentsBanner";
+import FailedDeploymentAlert from "../components/dashboard/FailedDeploymentAlert";
+import StatusFilterChips from "../components/dashboard/StatusFilterChips";
+import DensityToggle from "../components/dashboard/DensityToggle";
+import ExportButton from "../components/dashboard/ExportButton";
+import LastGoodDeploy from "../components/dashboard/LastGoodDeploy";
+import TopDeployers from "../components/dashboard/TopDeployers";
+import LongRunningWarning from "../components/dashboard/LongRunningWarning";
 import PageHeader from "../components/layout/PageHeader";
+import KeyboardShortcutsModal from "../components/dashboard/KeyboardShortcutsModal";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import { useDeploymentSocket } from "../hooks/useDeploymentSocket";
 import { useAuthStore } from "../store/authStore";
 import { useDeploymentStore } from "../store/deploymentStore";
@@ -20,6 +30,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const githubUsername = useAuthStore((state) => state.githubUsername);
 
   const deployments = useDeploymentStore((state) => state.deployments);
   const pagination = useDeploymentStore((state) => state.pagination);
@@ -37,6 +48,7 @@ export default function DashboardPage() {
   const setFilter = useDeploymentStore((state) => state.setFilter);
   const clearFilters = useDeploymentStore((state) => state.clearFilters);
   const setPage = useDeploymentStore((state) => state.setPage);
+  const setSort = useDeploymentStore((state) => state.setSort);
   const openDrawer = useDeploymentStore((state) => state.openDrawer);
   const closeDrawer = useDeploymentStore((state) => state.closeDrawer);
   const openModal = useDeploymentStore((state) => state.openModal);
@@ -50,7 +62,12 @@ export default function DashboardPage() {
   const [compareMode, setCompareMode] = useState(false);
   const [compareSelection, setCompareSelection] = useState<string[]>([]);
   const [compareModalOpen, setCompareModalOpen] = useState(false);
+  const [density, setDensity] = useState<"compact" | "default" | "comfortable">(() => {
+    const stored = localStorage.getItem("deploylens-density");
+    return (stored as any) || "default";
+  });
 
+  const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
   const handleChangeFilter = useCallback((key: Parameters<typeof setFilter>[0], value: Parameters<typeof setFilter>[1]) => {
     void setFilter(key, value);
   }, [setFilter]);
@@ -62,6 +79,14 @@ export default function DashboardPage() {
   const handleSetPage = useCallback((page: number) => {
     void setPage(page);
   }, [setPage]);
+
+  const handleToggleMine = useCallback((triggeredBy: string | null) => {
+    if (triggeredBy === null) {
+      void setFilter("triggered_by", "");
+    } else if (githubUsername) {
+      void setFilter("triggered_by", githubUsername);
+    }
+  }, [setFilter, githubUsername]);
 
   const handleOpenDrawer = useCallback((id: string) => {
     void openDrawer(id);
@@ -97,10 +122,13 @@ export default function DashboardPage() {
       environment: searchParams.get("environment") ?? "",
       status: searchParams.get("status") ?? "",
       branch: searchParams.get("branch") ?? "",
+      triggered_by: searchParams.get("triggered_by") ?? "",
       from: searchParams.get("from") ?? "",
       to: searchParams.get("to") ?? "",
       page: Number.parseInt(searchParams.get("page") ?? "1", 10) || 1,
       limit: Number.parseInt(searchParams.get("limit") ?? "20", 10) || 20,
+      sortBy: (searchParams.get("sort_by") as "created_at" | "duration_seconds" | "unified_status" | null) ?? "created_at",
+      sortDir: (searchParams.get("sort_dir") as "asc" | "desc" | null) ?? "desc",
     };
 
     setFiltersFromQuery(parsed);
@@ -113,8 +141,11 @@ export default function DashboardPage() {
     if (filters.environment) next.set("environment", filters.environment);
     if (filters.status) next.set("status", filters.status);
     if (filters.branch) next.set("branch", filters.branch);
+    if (filters.triggered_by) next.set("triggered_by", filters.triggered_by);
     if (filters.from) next.set("from", filters.from);
     if (filters.to) next.set("to", filters.to);
+    if (filters.sortBy) next.set("sort_by", filters.sortBy);
+    if (filters.sortDir) next.set("sort_dir", filters.sortDir);
     next.set("page", String(filters.page));
     next.set("limit", String(filters.limit));
 
@@ -132,6 +163,46 @@ export default function DashboardPage() {
   }, [activeView, fetchEnvironmentLatest]);
 
   useEffect(() => {
+    localStorage.setItem("deploylens-density", density);
+  }, [density]);
+
+  // Set up keyboard shortcuts
+  useKeyboardShortcuts(
+    [
+      {
+        key: "/",
+        handler: () => {
+          const branchInput = document.querySelector('[data-branch-input]') as HTMLInputElement;
+          branchInput?.focus();
+        },
+        skipWhenTyping: false,
+      },
+      {
+        key: "r",
+        handler: () => {
+          void fetchStats();
+          void fetchDeployments();
+        },
+        skipWhenTyping: true,
+      },
+      {
+        key: "Escape",
+        handler: () => {
+          closeDrawer();
+          closeModal();
+        },
+      },
+      {
+        key: "?",
+        handler: () => {
+          setShortcutsModalOpen(true);
+        },
+        skipWhenTyping: true,
+      },
+    ],
+    true
+  );
+  useEffect(() => {
     return () => {
       closeDrawer();
       closeModal();
@@ -146,7 +217,7 @@ export default function DashboardPage() {
   }, [compareMode]);
 
   const hasFilters = useMemo(
-    () => Boolean(filters.repo || filters.environment || filters.status || filters.branch || filters.from || filters.to),
+    () => Boolean(filters.repo || filters.environment || filters.status || filters.branch || filters.from || filters.to || filters.triggered_by),
     [filters],
   );
 
@@ -157,23 +228,35 @@ export default function DashboardPage() {
         actions={<ConnectionStatus />}
       />
 
-      <div style={{ padding: "24px 32px", display: "flex", flexDirection: "column", gap: "24px" }}>
+      <div style={{ padding: "20px 32px", display: "flex", flexDirection: "column", gap: "24px" }}>
+        <ActiveDeploymentsBanner />
         <StatsRow stats={stats} isLoading={isLoadingStats} />
 
         {activeView === "pipeline" ? (
           <>
+            <LongRunningWarning />
+            <LastGoodDeploy />
+            <TopDeployers stats={stats} />
+            <FailedDeploymentAlert />
             <FilterBar
               filters={filters}
               onChangeFilter={handleChangeFilter}
               onClear={handleClearFilters}
               compareMode={compareMode}
               onToggleCompareMode={() => setCompareMode((value) => !value)}
+              onToggleMine={githubUsername ? handleToggleMine : undefined}
             />
+            <StatusFilterChips stats={stats} />
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "8px" }}>
+              <ExportButton filters={filters} />
+              <DensityToggle density={density} onChangeDensity={setDensity} />
+            </div>
             <PipelineTable
               rows={deployments}
               pagination={pagination}
               isLoading={isLoading}
               hasFilters={hasFilters}
+              filters={filters}
               onOpen={handleOpenDrawer}
               onClearFilters={handleClearFilters}
               onSetPage={handleSetPage}
@@ -182,6 +265,10 @@ export default function DashboardPage() {
               compareSelection={compareSelection}
               onToggleCompareSelection={handleToggleCompareSelection}
               onOpenCompare={() => setCompareModalOpen(true)}
+              sortBy={(filters.sortBy as any) || "created_at"}
+              sortDir={(filters.sortDir as any) || "desc"}
+              onSort={setSort}
+              density={density}
             />
           </>
         ) : (
@@ -222,6 +309,11 @@ export default function DashboardPage() {
         deploymentAId={compareSelection[0] ?? null}
         deploymentBId={compareSelection[1] ?? null}
         onClose={() => setCompareModalOpen(false)}
+      />
+
+      <KeyboardShortcutsModal
+        open={shortcutsModalOpen}
+        onClose={() => setShortcutsModalOpen(false)}
       />
     </>
   );

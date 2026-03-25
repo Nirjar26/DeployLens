@@ -38,7 +38,7 @@ export default function EnvironmentSwimlanes({ environments, onOpen, onSelectEnv
   const buttonStyle: CSSProperties = {
     padding: "8px 16px",
     backgroundColor: "var(--accent)",
-    color: "#ffffff",
+    color: "var(--text-on-accent)",
     border: "none",
     borderRadius: "var(--radius-md)",
     fontSize: "13px",

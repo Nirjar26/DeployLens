@@ -45,6 +45,10 @@
   --status-warning-text:    #d97706;
   --status-warning-border:  #fde68a;
 
+  --status-offhours-bg:     #f5f3ff;
+  --status-offhours-text:   #7c3aed;
+  --status-offhours-border: #ddd6fe;
+
   /* BORDERS */
   --border-light:     #e2e8f0;
   --border-medium:    #cbd5e1;

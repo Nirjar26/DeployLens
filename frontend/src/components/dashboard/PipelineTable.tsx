@@ -1,15 +1,18 @@
 import { CSSProperties } from "react";
 import { useState } from "react";
+import { CheckCircle2, Clock3, Timer, Users } from "lucide-react";
 import { DeploymentRow as DeploymentRowType, PaginationInfo } from "../../store/deploymentStore";
 import DeploymentRow from "./DeploymentRow";
 import EmptyState from "./EmptyState";
 import LoadingSkeleton from "./LoadingSkeleton";
+import { DeploymentFilters } from "../../store/deploymentStore";
 
 type Props = {
   rows: DeploymentRowType[];
   pagination: PaginationInfo | null;
   isLoading: boolean;
   hasFilters: boolean;
+  filters: DeploymentFilters;
   onOpen: (id: string) => void;
   onClearFilters: () => void;
   onSetPage: (page: number) => void;
@@ -18,6 +21,10 @@ type Props = {
   compareSelection: string[];
   onToggleCompareSelection: (id: string) => void;
   onOpenCompare: () => void;
+  sortBy?: "created_at" | "duration_seconds" | "unified_status";
+  sortDir?: "asc" | "desc";
+  onSort?: (sortBy: "created_at" | "duration_seconds" | "unified_status", sortDir: "asc" | "desc") => void;
+  density?: "compact" | "default" | "comfortable";
 };
 
 export default function PipelineTable({
@@ -25,6 +32,7 @@ export default function PipelineTable({
   pagination,
   isLoading,
   hasFilters,
+  filters,
   onOpen,
   onClearFilters,
   onSetPage,
@@ -33,6 +41,10 @@ export default function PipelineTable({
   compareSelection,
   onToggleCompareSelection,
   onOpenCompare,
+  sortBy = "created_at",
+  sortDir = "desc",
+  onSort,
+  density = "default",
 }: Props) {
   const [jumpPage, setJumpPage] = useState("");
 
@@ -41,7 +53,14 @@ export default function PipelineTable({
   }
 
   if (rows.length === 0) {
-    return <EmptyState hasFilters={hasFilters} onClearFilters={onClearFilters} />;
+    return (
+      <EmptyState
+        hasFilters={hasFilters}
+        filters={filters}
+        total={pagination?.total ?? 0}
+        onClearFilters={onClearFilters}
+      />
+    );
   }
 
   const totalPages = pagination?.totalPages ?? 1;
@@ -79,7 +98,7 @@ export default function PipelineTable({
   const viewBtnStyle: CSSProperties = {
     padding: "6px 12px",
     backgroundColor: "var(--accent)",
-    color: "#ffffff",
+    color: "var(--text-on-accent)",
     border: "none",
     borderRadius: "var(--radius-md)",
     fontSize: "13px",
@@ -150,7 +169,7 @@ export default function PipelineTable({
   const pageBtnActiveStyle: CSSProperties = {
     ...pageBtnStyle,
     backgroundColor: "var(--accent)",
-    color: "#ffffff",
+    color: "var(--text-on-accent)",
     borderColor: "var(--accent)",
   };
 
@@ -176,6 +195,24 @@ export default function PipelineTable({
     display: "flex",
     alignItems: "center",
     gap: "12px",
+  };
+
+  const summaryStyle: CSSProperties = {
+    borderTop: "2px solid var(--border-light)",
+    background: "var(--bg-sunken)",
+    padding: "10px 16px",
+    display: "flex",
+    alignItems: "center",
+    gap: "20px",
+    flexWrap: "wrap",
+  };
+
+  const summaryItemStyle: CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    fontSize: "11px",
+    color: "var(--text-secondary)",
   };
 
   const paginationShowLabelStyle: CSSProperties = {
@@ -211,6 +248,55 @@ export default function PipelineTable({
     pointerEvents: "none",
   };
 
+  const sortableHeaderStyle: CSSProperties = {
+    ...theadThStyle,
+    cursor: "pointer",
+    userSelect: "none",
+    display: "flex",
+    alignItems: "center",
+    gap: "4px",
+  };
+
+  const sortIndicatorStyle = (column: string): CSSProperties => ({
+    fontSize: "10px",
+    opacity: sortBy === column ? 1 : 0.4,
+    transition: "opacity var(--transition-fast)",
+  });
+
+  const getSortIndicator = (column: "created_at" | "duration_seconds" | "unified_status") => {
+    if (sortBy !== column) {
+      return "↕";
+    }
+    return sortDir === "asc" ? "↑" : "↓";
+  };
+
+  const durations = rows
+    .map((row) => row.duration_seconds)
+    .filter((value): value is number => typeof value === "number" && value >= 0);
+
+  const avgDuration = durations.length === 0 ? 0 : Math.round(durations.reduce((sum, value) => sum + value, 0) / durations.length);
+  const totalDuration = durations.reduce((sum, value) => sum + value, 0);
+
+  const successCount = rows.filter((row) => row.unified_status === "success").length;
+  const pageSuccessRate = rows.length === 0 ? 0 : Math.round((successCount / rows.length) * 100);
+  const pageSuccessColor = pageSuccessRate > 80
+    ? "var(--status-success-text)"
+    : pageSuccessRate >= 50
+      ? "var(--status-warning-text)"
+      : "var(--status-failed-text)";
+
+  const uniqueDeployers = new Set(rows.map((row) => row.triggered_by).filter(Boolean)).size;
+
+  const formatDuration = (seconds: number): string => {
+    if (seconds <= 0) return "0s";
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  };
+
   return (
     <div style={pipelineCardStyle}>
       {compareMode && (
@@ -240,8 +326,40 @@ export default function PipelineTable({
             <th style={theadThStyle}>Branch / Commit</th>
             <th style={theadThStyle}>Environment</th>
             <th style={theadThStyle}>Triggered by</th>
-            <th style={theadThStyle}>Duration</th>
-            <th style={theadThStyle}>Time</th>
+            <th
+              style={sortableHeaderStyle}
+              onClick={() => {
+                if (onSort) {
+                  if (sortBy === "duration_seconds") {
+                    onSort("duration_seconds", sortDir === "asc" ? "desc" : "asc");
+                  } else {
+                    onSort("duration_seconds", "desc");
+                  }
+                }
+              }}
+            >
+              Duration
+              <span style={sortIndicatorStyle("duration_seconds")}>
+                {getSortIndicator("duration_seconds")}
+              </span>
+            </th>
+            <th
+              style={sortableHeaderStyle}
+              onClick={() => {
+                if (onSort) {
+                  if (sortBy === "created_at") {
+                    onSort("created_at", sortDir === "asc" ? "desc" : "asc");
+                  } else {
+                    onSort("created_at", "desc");
+                  }
+                }
+              }}
+            >
+              Time
+              <span style={sortIndicatorStyle("created_at")}>
+                {getSortIndicator("created_at")}
+              </span>
+            </th>
             <th style={{ ...theadThStyle, width: 80 }}>Actions</th>
           </tr>
         </thead>
@@ -254,10 +372,35 @@ export default function PipelineTable({
               compareMode={compareMode}
               isSelectedForCompare={compareSelection.includes(row.id)}
               onToggleCompareSelection={onToggleCompareSelection}
+                         density={density}
             />
           ))}
         </tbody>
       </table>
+
+      <div style={summaryStyle}>
+        <span style={summaryItemStyle}>
+          <Clock3 size={12} color="var(--text-muted)" />
+          Avg: {formatDuration(avgDuration)}
+        </span>
+
+        <span style={{ ...summaryItemStyle, color: pageSuccessColor }}>
+          <CheckCircle2 size={12} color={pageSuccessColor} />
+          {pageSuccessRate}% success
+        </span>
+
+        {durations.length >= 5 ? (
+          <span style={summaryItemStyle}>
+            <Timer size={12} color="var(--text-muted)" />
+            Total: {formatDuration(totalDuration)}
+          </span>
+        ) : null}
+
+        <span style={summaryItemStyle}>
+          <Users size={12} color="var(--text-muted)" />
+          {uniqueDeployers} deployers
+        </span>
+      </div>
 
       {pagination && (
         <div style={paginationStyle}>

@@ -311,6 +311,9 @@ export const deployments = {
     to?: string;
     page?: number;
     limit?: number;
+    sort_by?: "created_at" | "duration_seconds" | "unified_status";
+    sort_dir?: "asc" | "desc";
+    triggered_by?: string;
   }) {
     const response = await api.get("/api/deployments", { params });
     return response.data?.data as {
@@ -332,6 +335,18 @@ export const deployments = {
   async getStats() {
     const response = await api.get("/api/deployments/stats");
     return response.data?.data;
+  },
+  async getLastGood() {
+    const response = await api.get("/api/deployments/last-good");
+    return response.data?.data as {
+      id: string;
+      commit_sha_short: string;
+      commit_message: string;
+      triggered_by: string;
+      finished_at: string;
+      environment_display_name: string;
+      repository_name: string;
+    } | null;
   },
   async getEnvironmentLatest() {
     const response = await api.get("/api/deployments/environments/latest");

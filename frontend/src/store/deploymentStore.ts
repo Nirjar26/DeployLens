@@ -18,6 +18,7 @@ export type DeploymentRow = {
   started_at: string | null;
   finished_at: string | null;
   duration_seconds: number | null;
+  is_first_deploy?: boolean;
   created_at: string;
   repository: {
     id: string;
@@ -69,7 +70,28 @@ export type DeploymentStats = {
   failed_today: number;
   running_now: number;
   success_rate_7d: number;
+  success_rate_prev_7d?: number;
   avg_duration_7d: number;
+  avg_duration_prev_7d?: number;
+  avg_e2e_seconds?: number | null;
+  rollback_count_7d?: number;
+  thirty_day_daily_avg?: number;
+  top_deployers?: Array<{
+    triggered_by: string;
+    count: number;
+  }>;
+  last_7_days?: Array<{
+    date: string;
+    total: number;
+  }>;
+  by_status?: {
+    pending: number;
+    running: number;
+    success: number;
+    failed: number;
+    rolled_back: number;
+    total: number;
+  };
 };
 
 export type EnvironmentLatest = {
@@ -80,6 +102,7 @@ export type EnvironmentLatest = {
   };
   latest_deployment: DeploymentRow | null;
   recent_deployments?: DeploymentRow[];
+  recent_statuses?: Array<"pending" | "running" | "success" | "failed" | "rolled_back">;
   total_today: number;
   success_rate: number;
 };
@@ -93,6 +116,9 @@ export type DeploymentFilters = {
   to: string;
   page: number;
   limit: number;
+  sortBy?: "created_at" | "duration_seconds" | "unified_status";
+  sortDir?: "asc" | "desc";
+  triggered_by?: string;
 };
 
 type DeploymentStore = {
@@ -116,6 +142,7 @@ type DeploymentStore = {
   setFilter: (key: keyof Omit<DeploymentFilters, "page" | "limit"> | "limit", value: string | number) => Promise<void>;
   clearFilters: () => Promise<void>;
   setPage: (page: number) => Promise<void>;
+  setSort: (sortBy: "created_at" | "duration_seconds" | "unified_status", sortDir: "asc" | "desc") => Promise<void>;
   openDrawer: (id: string) => Promise<void>;
   closeDrawer: () => void;
   openModal: (id: string) => Promise<void>;
@@ -137,6 +164,8 @@ const defaultFilters: DeploymentFilters = {
   to: "",
   page: 1,
   limit: 20,
+  sortBy: "created_at",
+  sortDir: "desc",
 };
 
 export const useDeploymentStore = create<DeploymentStore>((set, get) => ({
@@ -157,7 +186,20 @@ export const useDeploymentStore = create<DeploymentStore>((set, get) => ({
   fetchDeployments: async () => {
     set({ isLoading: true });
     try {
-      const response = await deployments.list(get().filters);
+      const currentFilters = get().filters;
+      const response = await deployments.list({
+        repo: currentFilters.repo,
+        environment: currentFilters.environment,
+        status: currentFilters.status,
+        branch: currentFilters.branch,
+        from: currentFilters.from,
+        to: currentFilters.to,
+        page: currentFilters.page,
+        limit: currentFilters.limit,
+        sort_by: currentFilters.sortBy,
+        sort_dir: currentFilters.sortDir,
+        triggered_by: currentFilters.triggered_by,
+      });
       set({ deployments: response.deployments, pagination: response.pagination, isLoading: false });
     } catch {
       set({ deployments: [], pagination: null, isLoading: false });
@@ -212,6 +254,18 @@ export const useDeploymentStore = create<DeploymentStore>((set, get) => ({
 
   setPage: async (page) => {
     set((state) => ({ filters: { ...state.filters, page } }));
+    await get().fetchDeployments();
+  },
+
+  setSort: async (sortBy, sortDir) => {
+    set((state) => ({
+      filters: {
+        ...state.filters,
+        sortBy,
+        sortDir,
+        page: 1,
+      },
+    }));
     await get().fetchDeployments();
   },
 

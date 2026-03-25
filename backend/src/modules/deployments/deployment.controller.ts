@@ -9,8 +9,17 @@ const listQuerySchema = z.object({
   environment: z.string().optional(),
   status: z.string().optional(),
   branch: z.string().optional(),
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
+  triggered_by: z.string().optional(),
+  sort_by: z.enum(["created_at", "duration_seconds", "unified_status"]).optional(),
+  sort_dir: z.enum(["asc", "desc"]).optional(),
+  from: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().datetime().optional(),
+  ),
+  to: z.preprocess(
+    (value) => (value === "" ? undefined : value),
+    z.string().datetime().optional(),
+  ),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
@@ -67,6 +76,17 @@ export async function getStats(req: Request, res: Response, next: NextFunction) 
     if (!req.user?.id) throw new Error("Invalid credentials");
 
     const result = await deploymentService.getDeploymentStats(req.user.id);
+    return sendSuccess(res, result);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function getLastGoodDeployment(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user?.id) throw new Error("Invalid credentials");
+
+    const result = await deploymentService.getLastGoodDeployment(req.user.id);
     return sendSuccess(res, result);
   } catch (error) {
     return next(error);
