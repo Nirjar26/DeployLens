@@ -14,6 +14,10 @@ type PollRateState = {
 
 const pollRateByUser = new Map<string, PollRateState>();
 
+export function getRateLimitState(userId: string): PollRateState | null {
+  return pollRateByUser.get(userId) ?? null;
+}
+
 async function ensurePlaceholderEnvironment(userId: string, repositoryId: string) {
   const existing = await prisma.environment.findFirst({
     where: {

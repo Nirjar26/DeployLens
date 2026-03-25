@@ -7,6 +7,7 @@ import { decrypt, encrypt } from "../../utils/encryption";
 import { createGithubClient } from "../../utils/githubClient";
 import { writeAuditLog } from "../../utils/auditLog";
 import { calculateUnifiedStatus } from "../../utils/unifiedStatus";
+import { runAggregator } from "../aggregator/aggregator.service";
 import {
   GithubEmail,
   GithubOauthTokenResponse,
@@ -433,7 +434,6 @@ export async function getTrackedRepos(userId: string) {
   const repos = await prisma.repository.findMany({
     where: {
       user_id: userId,
-      is_active: true,
     },
     include: {
       _count: {
@@ -457,7 +457,140 @@ export async function getTrackedRepos(userId: string) {
     default_branch: repo.default_branch,
     is_active: repo.is_active,
     environment_count: repo._count.environments,
+    webhook_secret_exists: Boolean(repo.webhook_secret),
+    added_at: repo.added_at,
+    created_at: repo.created_at,
   }));
+}
+
+export async function getTokenStatus(userId: string) {
+  try {
+    const token = await getGithubAccessTokenForUser(userId);
+    const github = createGithubClient(token, userId);
+    const response = await github.get("/user");
+    const rawScopes = String(response.headers["x-oauth-scopes"] ?? "");
+    const scopes = rawScopes
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+    return {
+      scopes,
+      has_repo: scopes.includes("repo") || scopes.includes("public_repo"),
+      has_workflow: scopes.includes("workflow"),
+      valid: true,
+    };
+  } catch {
+    return {
+      scopes: [],
+      has_repo: false,
+      has_workflow: false,
+      valid: false,
+      error: "Token invalid",
+    };
+  }
+}
+
+export async function getRepoStats(userId: string) {
+  const repos = await prisma.repository.findMany({
+    where: { user_id: userId },
+    select: { id: true },
+  });
+
+  const stats = await Promise.all(
+    repos.map(async (repo: { id: string }) => {
+      const [total, latest] = await Promise.all([
+        prisma.deployment.count({ where: { user_id: userId, repository_id: repo.id } }),
+        prisma.deployment.findFirst({
+          where: { user_id: userId, repository_id: repo.id },
+          orderBy: { created_at: "desc" },
+          select: {
+            created_at: true,
+            unified_status: true,
+          },
+        }),
+      ]);
+
+      return {
+        repository_id: repo.id,
+        total_deployments: total,
+        last_deployment_at: latest?.created_at ?? null,
+        last_deployment_status: latest?.unified_status ?? null,
+      };
+    }),
+  );
+
+  return stats;
+}
+
+export async function getRepoWebhookSecret(userId: string, repoId: string, req?: Request) {
+  const repo = await prisma.repository.findFirst({
+    where: {
+      id: repoId,
+      user_id: userId,
+    },
+    select: {
+      id: true,
+      full_name: true,
+      webhook_secret: true,
+    },
+  });
+
+  if (!repo) {
+    throw new Error("FORBIDDEN");
+  }
+
+  await writeAuditLog({
+    userId,
+    action: "repo.webhook_secret_viewed",
+    entityType: "repository",
+    entityId: repo.id,
+    metadata: {
+      repo_id: repo.id,
+      repo_full_name: repo.full_name,
+    },
+    req,
+  });
+
+  return { webhook_secret: repo.webhook_secret ?? "" };
+}
+
+export async function syncRepo(userId: string, repoId: string, req?: Request) {
+  const repo = await prisma.repository.findFirst({
+    where: {
+      id: repoId,
+      user_id: userId,
+      is_active: true,
+    },
+    select: {
+      id: true,
+      full_name: true,
+    },
+  });
+
+  if (!repo) {
+    throw new Error("FORBIDDEN");
+  }
+
+  const syncedRuns = await fetchAndStoreRuns(userId, repo.full_name, 20);
+  await runAggregator(userId);
+
+  await writeAuditLog({
+    userId,
+    action: "repo.synced",
+    entityType: "repository",
+    entityId: repo.id,
+    metadata: {
+      full_name: repo.full_name,
+      synced_runs: syncedRuns.length,
+    },
+    req,
+  });
+
+  return {
+    synced: syncedRuns.length,
+    message: `${syncedRuns.length} deployments synced`,
+  };
 }
 
 export async function untrackRepo(userId: string, repoId: string, req?: Request) {

@@ -7,6 +7,7 @@ const router = Router();
 router.post("/aws", verifyToken, awsController.connectAws);
 router.get("/aws", verifyToken, awsController.getAwsConnection);
 router.delete("/aws", verifyToken, awsController.deleteAwsConnection);
+router.get("/sync-status", verifyToken, awsController.getSyncStatus);
 
 router.get("/applications", verifyToken, awsController.getApplications);
 router.get("/deployment-groups", verifyToken, awsController.getDeploymentGroups);

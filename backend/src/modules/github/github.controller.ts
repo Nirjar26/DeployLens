@@ -170,3 +170,63 @@ export async function rerunWorkflow(req: Request, res: Response, next: NextFunct
     return next(error);
   }
 }
+
+export async function getTokenStatus(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user?.id) {
+      throw new Error("Invalid credentials");
+    }
+
+    const status = await githubService.getTokenStatus(req.user.id);
+    return sendSuccess(res, status);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function getRepoStats(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user?.id) {
+      throw new Error("Invalid credentials");
+    }
+
+    const stats = await githubService.getRepoStats(req.user.id);
+    return sendSuccess(res, stats);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function getWebhookSecret(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user?.id) {
+      throw new Error("Invalid credentials");
+    }
+
+    const secret = await githubService.getRepoWebhookSecret(req.user.id, req.params.repoId, req);
+    return sendSuccess(res, secret);
+  } catch (error) {
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return sendError(res, "FORBIDDEN", "Forbidden", 403);
+    }
+
+    return next(error);
+  }
+}
+
+export async function syncRepo(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user?.id) {
+      throw new Error("Invalid credentials");
+    }
+
+    const result = await githubService.syncRepo(req.user.id, req.params.repoId, req);
+    return sendSuccess(res, result);
+  } catch (error) {
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return sendError(res, "FORBIDDEN", "Forbidden", 403);
+    }
+
+    return next(error);
+  }
+}

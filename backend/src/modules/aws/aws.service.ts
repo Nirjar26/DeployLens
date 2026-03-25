@@ -13,6 +13,7 @@ import { encrypt } from "../../utils/encryption";
 import { writeAuditLog } from "../../utils/auditLog";
 import { calculateUnifiedStatus } from "../../utils/unifiedStatus";
 import { getCodeDeployClient, getSTSClient } from "../../utils/awsClient";
+import { getRateLimitState } from "../../jobs/githubPoller";
 import { AwsConnectInput, NormalizedCodeDeployDeployment, NormalizedDeploymentEvent } from "./aws.types";
 
 const { PrismaClient } = require("@prisma/client");
@@ -182,6 +183,36 @@ export async function getAwsStatus(userId: string) {
     accountAlias: connection.account_alias,
     region: connection.region,
     connected_at: connection.connected_at,
+  };
+}
+
+export async function getSyncStatus(userId: string) {
+  const [latestGithub, latestAws] = await Promise.all([
+    prisma.deployment.findFirst({
+      where: {
+        user_id: userId,
+        github_run_id: { not: null },
+      },
+      select: { created_at: true },
+      orderBy: { created_at: "desc" },
+    }),
+    prisma.deployment.findFirst({
+      where: {
+        user_id: userId,
+        codedeploy_id: { not: null },
+      },
+      select: { created_at: true },
+      orderBy: { created_at: "desc" },
+    }),
+  ]);
+
+  const rate = getRateLimitState(userId);
+
+  return {
+    github_last_synced: latestGithub?.created_at ?? null,
+    aws_last_synced: latestAws?.created_at ?? null,
+    github_rate_limit_remaining: rate?.remaining ?? null,
+    github_rate_limit_reset: rate?.resetAt ? new Date(rate.resetAt).toISOString() : null,
   };
 }
 

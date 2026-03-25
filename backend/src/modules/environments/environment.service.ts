@@ -194,3 +194,95 @@ export async function deleteEnvironment(userId: string, id: string, req?: Reques
 
   return { success: true };
 }
+
+export async function getEnvironmentStats(userId: string) {
+  const environments = await prisma.environment.findMany({
+    where: { user_id: userId },
+    select: { id: true },
+  });
+
+  const stats = await Promise.all(
+    environments.map(async (environment: { id: string }) => {
+      const [total, latest, recent] = await Promise.all([
+        prisma.deployment.count({
+          where: {
+            user_id: userId,
+            environment_id: environment.id,
+          },
+        }),
+        prisma.deployment.findFirst({
+          where: {
+            user_id: userId,
+            environment_id: environment.id,
+          },
+          orderBy: { created_at: "desc" },
+          select: {
+            created_at: true,
+            unified_status: true,
+          },
+        }),
+        prisma.deployment.findMany({
+          where: {
+            user_id: userId,
+            environment_id: environment.id,
+          },
+          orderBy: { created_at: "desc" },
+          take: 5,
+          select: {
+            unified_status: true,
+          },
+        }),
+      ]);
+
+      return {
+        environment_id: environment.id,
+        total_deployments: total,
+        last_deployment_at: latest?.created_at ?? null,
+        last_deployment_status: latest?.unified_status ?? null,
+        recent_statuses: recent.map((entry: { unified_status: string }) => entry.unified_status),
+      };
+    }),
+  );
+
+  return stats;
+}
+
+export async function testEnvironmentConnection(userId: string, environmentId: string) {
+  const environment = await prisma.environment.findUnique({
+    where: { id: environmentId },
+    select: {
+      id: true,
+      user_id: true,
+      codedeploy_app: true,
+      codedeploy_group: true,
+    },
+  });
+
+  if (!environment || environment.user_id !== userId) {
+    throw new Error("FORBIDDEN");
+  }
+
+  let client;
+  try {
+    client = await getCodeDeployClient(userId);
+  } catch {
+    return { valid: false, message: "AWS credentials invalid" };
+  }
+
+  try {
+    const groups = await client.send(
+      new ListDeploymentGroupsCommand({
+        applicationName: environment.codedeploy_app,
+      }),
+    );
+
+    const found = (groups.deploymentGroups ?? []).includes(environment.codedeploy_group);
+    if (!found) {
+      return { valid: false, message: "Group not found in AWS" };
+    }
+
+    return { valid: true, message: "Connected" };
+  } catch {
+    return { valid: false, message: "AWS credentials invalid" };
+  }
+}

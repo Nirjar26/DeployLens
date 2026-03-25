@@ -92,3 +92,33 @@ export async function deleteEnvironment(req: Request, res: Response, next: NextF
     return next(error);
   }
 }
+
+export async function getEnvironmentStats(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user?.id) {
+      throw new Error("Invalid credentials");
+    }
+
+    const stats = await environmentService.getEnvironmentStats(req.user.id);
+    return sendSuccess(res, stats);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function testEnvironment(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user?.id) {
+      throw new Error("Invalid credentials");
+    }
+
+    const result = await environmentService.testEnvironmentConnection(req.user.id, req.params.id);
+    return sendSuccess(res, result);
+  } catch (error) {
+    if (error instanceof Error && error.message === "FORBIDDEN") {
+      return sendError(res, "FORBIDDEN", "Forbidden", 403);
+    }
+
+    return next(error);
+  }
+}

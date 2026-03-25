@@ -32,6 +32,39 @@ export type TrackedRepo = {
   default_branch: string;
   is_active: boolean;
   environment_count: number;
+  webhook_secret_exists?: boolean;
+  added_at?: string;
+  created_at?: string;
+};
+
+export type SyncStatus = {
+  github_last_synced: string | null;
+  aws_last_synced: string | null;
+  github_rate_limit_remaining: number | null;
+  github_rate_limit_reset: string | null;
+};
+
+export type GithubTokenStatus = {
+  scopes: string[];
+  has_repo: boolean;
+  has_workflow: boolean;
+  valid: boolean;
+  error?: string;
+};
+
+export type RepoDeploymentStats = {
+  repository_id: string;
+  total_deployments: number;
+  last_deployment_at: string | null;
+  last_deployment_status: string | null;
+};
+
+export type EnvironmentStats = {
+  environment_id: string;
+  total_deployments: number;
+  last_deployment_at: string | null;
+  last_deployment_status: string | null;
+  recent_statuses: string[];
 };
 
 export type AwsStatus = {
@@ -132,6 +165,22 @@ export const github = {
     const response = await api.get("/api/github/repos/tracked");
     return response.data?.data as TrackedRepo[];
   },
+  async getRepoStats() {
+    const response = await api.get("/api/github/repos/stats");
+    return response.data?.data as RepoDeploymentStats[];
+  },
+  async getTokenStatus() {
+    const response = await api.get("/api/github/token-status");
+    return response.data?.data as GithubTokenStatus;
+  },
+  async syncRepo(repoId: string) {
+    const response = await api.post(`/api/github/repos/${repoId}/sync`);
+    return response.data?.data as { synced: number; message: string };
+  },
+  async getWebhookSecret(repoId: string) {
+    const response = await api.get(`/api/github/repos/${repoId}/webhook-secret`);
+    return response.data?.data as { webhook_secret: string };
+  },
   async untrackRepo(repoId: string) {
     const response = await api.delete(`/api/github/repos/${repoId}/untrack`);
     return response.data?.data as { success: boolean };
@@ -179,6 +228,10 @@ export const aws = {
     const response = await api.delete("/api/settings/aws");
     return response.data?.data as { success: boolean };
   },
+  async getSyncStatus() {
+    const response = await api.get("/api/settings/sync-status");
+    return response.data?.data as SyncStatus;
+  },
   async getApplications() {
     const response = await api.get("/api/aws/applications");
     return response.data?.data as { applications: string[] };
@@ -225,6 +278,14 @@ export const environments = {
   async delete(id: string) {
     const response = await api.delete(`/api/environments/${id}`);
     return response.data?.data as { success: boolean };
+  },
+  async stats() {
+    const response = await api.get("/api/environments/stats");
+    return response.data?.data as EnvironmentStats[];
+  },
+  async test(id: string) {
+    const response = await api.post(`/api/environments/${id}/test`);
+    return response.data?.data as { valid: boolean; message: string };
   },
 };
 

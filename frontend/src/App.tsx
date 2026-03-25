@@ -21,9 +21,13 @@ import { useSocket } from "./hooks/useSocket";
 import { useAuthStore } from "./store/authStore";
 
 function FullScreenSpinner() {
+  console.log("FullScreenSpinner: rendering");
   return (
-    <div className="screen-loader">
-      <div className="spinner" aria-hidden="true" />
+    <div className="screen-loader"  style={{ display: "grid", placeItems: "center", minHeight: "100vh", background: "var(--bg-page)" }}>
+      <div style={{ textAlign: "center" }}>
+        <div className="spinner" aria-hidden="true" />
+        <p style={{ marginTop: "16px", color: "var(--text-muted)" }}>Loading...</p>
+      </div>
     </div>
   );
 }
@@ -76,7 +80,14 @@ export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
   const didInitRef = useRef(false);
-  useSocket();
+
+  console.log("App.tsx: component mounting");
+
+  try {
+    useSocket();
+  } catch (error) {
+    console.error("App.tsx: useSocket failed", error);
+  }
 
   useEffect(() => {
     if (didInitRef.current) {

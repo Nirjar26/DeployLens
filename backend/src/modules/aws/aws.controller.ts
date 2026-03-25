@@ -55,6 +55,19 @@ export async function deleteAwsConnection(req: Request, res: Response, next: Nex
   }
 }
 
+export async function getSyncStatus(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user?.id) {
+      throw new Error("Invalid credentials");
+    }
+
+    const status = await awsService.getSyncStatus(req.user.id);
+    return sendSuccess(res, status);
+  } catch (error) {
+    return next(error);
+  }
+}
+
 export async function getApplications(req: Request, res: Response, next: NextFunction) {
   try {
     if (!req.user?.id) {

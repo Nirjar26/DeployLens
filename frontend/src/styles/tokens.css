@@ -41,6 +41,10 @@
   --status-rolledback-text: #ea580c;
   --status-rolledback-border: #fed7aa;
 
+  --status-warning-bg:      #fffbeb;
+  --status-warning-text:    #d97706;
+  --status-warning-border:  #fde68a;
+
   /* BORDERS */
   --border-light:     #e2e8f0;
   --border-medium:    #cbd5e1;
@@ -79,4 +83,12 @@
   --transition-fast: 100ms ease;
   --transition-base: 150ms ease;
   --transition-slow: 250ms ease;
+
+  /* SETTINGS ENV SWATCHES */
+  --env-swatch-red:    #ef4444;
+  --env-swatch-orange: #f97316;
+  --env-swatch-yellow: #eab308;
+  --env-swatch-green:  #22c55e;
+  --env-swatch-blue:   #3b82f6;
+  --env-swatch-purple: #8b5cf6;
 }
