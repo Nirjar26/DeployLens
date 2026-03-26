@@ -319,7 +319,7 @@ MIT — see [LICENSE](LICENSE) for details.
 
 ## Author
 
-Built by **Nirjxr** — final-year BCA student at CHARUSAT, building in public.
+Built by **Nirjxr**
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-connect-blue)](https://linkedin.com/in/your-profile)
 [![GitHub](https://img.shields.io/badge/GitHub-follow-black)](https://github.com/your-username)
