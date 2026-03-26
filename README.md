@@ -17,14 +17,6 @@ GitHub Actions runs your build. AWS CodeDeploy deploys your code. These two syst
 
 ---
 
-## Screenshots
-
-> Dashboard · Environments · Deployment Detail · Configuration
-
-*(Add screenshots here)*
-
----
-
 ## Features
 
 ### Core Pipeline
