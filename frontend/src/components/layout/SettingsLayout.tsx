@@ -5,12 +5,13 @@ interface SettingsLayoutProps {
   maxWidth?: string;
 }
 
-export default function SettingsLayout({ children, maxWidth = "720px" }: SettingsLayoutProps) {
+export default function SettingsLayout({ children, maxWidth = "100%" }: SettingsLayoutProps) {
   return (
     <div style={{
+      width: "100%",
       maxWidth,
-      margin: "0 auto",
       padding: "0 32px 48px 32px",
+      boxSizing: "border-box",
     }}>
       {children}
     </div>

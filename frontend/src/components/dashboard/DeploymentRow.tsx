@@ -1,30 +1,7 @@
-import { GitBranch } from "lucide-react";
+import { ChevronRight, GitBranch } from "lucide-react";
 import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { DeploymentRow as DeploymentRowType } from "../../store/deploymentStore";
 import StatusBadge from "./StatusBadge";
-import { useDeploymentStore } from "../../store/deploymentStore";
-
-function formatRelative(iso: string): string {
-  const then = new Date(iso).getTime();
-  const diffSec = Math.max(0, Math.floor((Date.now() - then) / 1000));
-  if (diffSec < 60) return `${diffSec}s ago`;
-  const min = Math.floor(diffSec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const d = Math.floor(hr / 24);
-  return `${d}d ago`;
-}
-
-function formatDuration(seconds: number | null): string {
-  if (seconds === null || seconds < 0) return "—";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
-}
 
 type Props = {
   deployment: DeploymentRowType;
@@ -33,7 +10,108 @@ type Props = {
   isSelectedForCompare: boolean;
   onToggleCompareSelection: (id: string) => void;
   density?: "compact" | "default" | "comfortable";
+  rowIndex: number;
+  isLastRow: boolean;
+  isActive: boolean;
 };
+
+function formatRelative(iso: string): string {
+  const then = new Date(iso).getTime();
+  const diffSec = Math.max(0, Math.floor((Date.now() - then) / 1000));
+
+  if (diffSec < 10) return "just now";
+  if (diffSec < 60) return `${diffSec}s ago`;
+
+  const min = Math.floor(diffSec / 60);
+  if (min < 60) return `${min}m ago`;
+
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+
+  const day = Math.floor(hr / 24);
+  return `${day}d ago`;
+}
+
+function formatStaticDuration(seconds: number | null): string {
+  if (seconds === null || seconds < 0) return "—";
+
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainder = seconds % 60;
+
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  if (minutes > 0) return `${minutes}m ${remainder}s`;
+  return `${remainder}s`;
+}
+
+function formatRunningElapsed(seconds: number): string {
+  const safe = Math.max(0, seconds);
+
+  if (safe < 60) return `${safe}s`;
+  if (safe < 3600) {
+    const minutes = Math.floor(safe / 60);
+    const remainder = safe % 60;
+    return `${minutes}m ${remainder}s`;
+  }
+
+  if (safe < 86400) {
+    const hours = Math.floor(safe / 3600);
+    const minutes = Math.floor((safe % 3600) / 60);
+    return `${hours}h ${minutes}m`;
+  }
+
+  const days = Math.floor(safe / 86400);
+  const hours = Math.floor((safe % 86400) / 3600);
+  return `${days}d ${hours}h`;
+}
+
+function getActorTone(actor: string | null): { bg: string; fg: string; isBot: boolean } {
+  if (!actor) {
+    return {
+      bg: "var(--bg-sunken)",
+      fg: "var(--text-muted)",
+      isBot: false,
+    };
+  }
+
+  const isBot = actor.toLowerCase().includes("[bot]");
+  if (isBot) {
+    return {
+      bg: "var(--bg-sunken)",
+      fg: "var(--text-muted)",
+      isBot: true,
+    };
+  }
+
+  const first = actor.charAt(0).toUpperCase();
+  if (first >= "A" && first <= "F") {
+    return {
+      bg: "var(--status-offhours-bg)",
+      fg: "var(--status-offhours-text)",
+      isBot: false,
+    };
+  }
+  if (first >= "G" && first <= "L") {
+    return {
+      bg: "var(--status-running-bg)",
+      fg: "var(--status-running-text)",
+      isBot: false,
+    };
+  }
+  if (first >= "M" && first <= "R") {
+    return {
+      bg: "var(--status-success-bg)",
+      fg: "var(--status-success-text)",
+      isBot: false,
+    };
+  }
+
+  return {
+    bg: "var(--status-warning-bg)",
+    fg: "var(--status-warning-text)",
+    isBot: false,
+  };
+}
 
 export default function DeploymentRow({
   deployment,
@@ -42,37 +120,38 @@ export default function DeploymentRow({
   isSelectedForCompare,
   onToggleCompareSelection,
   density = "default",
+  rowIndex,
+  isLastRow,
+  isActive,
 }: Props) {
   const [now, setNow] = useState(Date.now());
-  const avgDuration7d = useDeploymentStore((state) => state.stats?.avg_duration_7d ?? 0);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isViewHovered, setIsViewHovered] = useState(false);
 
-  const rowStyle: CSSProperties = {
-    minHeight: density === "compact" ? "44px" : density === "comfortable" ? "76px" : "60px",
-  };
+  const isRunning = deployment.unified_status === "running";
+  const shouldTick = isRunning && Boolean(deployment.started_at);
 
   useEffect(() => {
-    const isLive = deployment.duration_seconds === null && deployment.unified_status === "running" && deployment.started_at;
-    if (!isLive) return;
+    if (!shouldTick) return;
 
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
-  }, [deployment.duration_seconds, deployment.started_at, deployment.unified_status]);
+  }, [shouldTick]);
 
-  const liveDuration = useMemo(() => {
-    if (deployment.duration_seconds !== null) return formatDuration(deployment.duration_seconds);
-    if (deployment.unified_status !== "running" || !deployment.started_at) return "—";
-    const sec = Math.max(0, Math.floor((now - new Date(deployment.started_at).getTime()) / 1000));
-    return formatDuration(sec);
-  }, [deployment.duration_seconds, deployment.started_at, deployment.unified_status, now]);
+  const whenDuration = useMemo(() => {
+    if (isRunning && deployment.started_at) {
+      const elapsed = Math.max(0, Math.floor((now - new Date(deployment.started_at).getTime()) / 1000));
+      return formatRunningElapsed(elapsed);
+    }
 
-  const isRunning = deployment.unified_status === "running";
-  const triggerInitial = deployment.triggered_by?.charAt(0).toUpperCase() ?? "?";
+    return formatStaticDuration(deployment.duration_seconds);
+  }, [deployment.duration_seconds, deployment.started_at, isRunning, now]);
 
-  const badges = useMemo(() => {
-    const next: Array<{ label: string; tone: "failed" | "rolledback" | "offhours" | "warning" | "accent"; icon?: "moon" }> = [];
+  const branchBadges = useMemo(() => {
+    const next: Array<{ label: "HOTFIX" | "ROLLBACK"; tone: "failed" | "rolledback" }> = [];
     const branch = deployment.branch.toLowerCase();
 
-    if (branch.includes("hotfix") || branch.includes("fix")) {
+    if (branch.includes("hotfix") || branch.includes("fix") || branch.includes("patch")) {
       next.push({ label: "HOTFIX", tone: "failed" });
     }
 
@@ -80,156 +159,322 @@ export default function DeploymentRow({
       next.push({ label: "ROLLBACK", tone: "rolledback" });
     }
 
-    if (deployment.started_at) {
-      const started = new Date(deployment.started_at);
-      const hour = started.getHours();
-      const day = started.getDay();
-      const isWeekend = day === 0 || day === 6;
-      const isOffHours = hour >= 18 || hour <= 7;
-      if (isWeekend || isOffHours) {
-        next.push({ label: "OFF-HOURS", tone: "offhours", icon: "moon" });
-      }
-    }
-
-    if (typeof deployment.duration_seconds === "number" && avgDuration7d > 0 && deployment.duration_seconds > avgDuration7d * 2) {
-      next.push({ label: "SLOW", tone: "warning" });
-    }
-
-    if (deployment.is_first_deploy) {
-      next.push({ label: "FIRST", tone: "accent" });
-    }
-
     return next;
-  }, [deployment, avgDuration7d]);
+  }, [deployment.branch, deployment.is_rollback]);
 
-  const badgeBaseStyle: CSSProperties = {
-    height: "16px",
-    padding: "0 5px",
-    borderRadius: "var(--radius-full)",
-    fontSize: "9px",
-    fontWeight: 700,
-    textTransform: "uppercase",
-    letterSpacing: "0.3px",
-    display: "inline-flex",
-    alignItems: "center",
-    whiteSpace: "nowrap",
-    gap: "3px",
+  const actorTone = getActorTone(deployment.triggered_by);
+  const actorInitial = actorTone.isBot ? "B" : deployment.triggered_by?.charAt(0).toUpperCase() ?? "?";
+
+  const rowMinHeight = density === "compact" ? 56 : density === "comfortable" ? 72 : 64;
+  const oddRowBackground =
+    rowIndex % 2 === 1
+      ? "color-mix(in srgb, var(--bg-sunken) 50%, var(--bg-surface) 50%)"
+      : "transparent";
+
+  const rowStyle: CSSProperties = {
+    minHeight: `${rowMinHeight}px`,
+    cursor: "pointer",
+    backgroundColor: isHovered ? "var(--bg-hover)" : isActive ? "var(--accent-light)" : oddRowBackground,
+    transition: "background var(--transition-fast)",
+    boxShadow: isActive ? "inset 2px 0 0 var(--accent)" : undefined,
   };
 
-  const badgeToneStyle = (tone: "failed" | "rolledback" | "offhours" | "warning" | "accent"): CSSProperties => {
-    switch (tone) {
-      case "failed":
-        return {
-          background: "var(--status-failed-bg)",
-          color: "var(--status-failed-text)",
-          border: "1px solid var(--status-failed-border)",
-        };
-      case "rolledback":
-        return {
-          background: "var(--status-rolledback-bg)",
-          color: "var(--status-rolledback-text)",
-          border: "1px solid var(--status-rolledback-border)",
-        };
-      case "offhours":
-        return {
-          background: "var(--status-offhours-bg)",
-          color: "var(--status-offhours-text)",
-          border: "1px solid var(--status-offhours-border)",
-        };
-      case "warning":
-        return {
-          background: "var(--status-warning-bg)",
-          color: "var(--status-warning-text)",
-          border: "1px solid var(--status-warning-border)",
-        };
-      default:
-        return {
-          background: "var(--accent-light)",
-          color: "var(--accent)",
-          border: "1px solid var(--accent-border)",
-        };
-    }
+  const cellBaseStyle: CSSProperties = {
+    padding: "12px 16px",
+    verticalAlign: "middle",
+    textAlign: "center",
+    borderBottom: isLastRow ? "none" : "1px solid var(--bg-sunken)",
+  };
+
+  const branchRowStyle: CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "4px",
+    minWidth: 0,
+  };
+
+  const branchNameStyle: CSSProperties = {
+    fontSize: "13px",
+    fontWeight: 600,
+    color: "var(--text-primary)",
+    maxWidth: "200px",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  };
+
+  const shaPillStyle: CSSProperties = {
+    display: "inline-flex",
+    alignItems: "center",
+    height: "18px",
+    padding: "1px 6px",
+    background: "var(--bg-sunken)",
+    border: "1px solid var(--border-light)",
+    borderRadius: "4px",
+    fontFamily: "var(--font-mono)",
+    fontSize: "11px",
+    color: "var(--text-secondary)",
+    letterSpacing: "0.3px",
+  };
+
+  const contextBadgeStyle = (tone: "failed" | "rolledback"): CSSProperties => ({
+    display: "inline-flex",
+    alignItems: "center",
+    height: "16px",
+    borderRadius: "3px",
+    padding: "1px 5px",
+    fontSize: "9px",
+    fontWeight: 700,
+    letterSpacing: "0.5px",
+    border:
+      tone === "failed"
+        ? "1px solid var(--status-failed-border)"
+        : "1px solid var(--status-rolledback-border)",
+    background: tone === "failed" ? "var(--status-failed-bg)" : "var(--status-rolledback-bg)",
+    color: tone === "failed" ? "var(--status-failed-text)" : "var(--status-rolledback-text)",
+  });
+
+  const envChipStyle = (colorTag: string): CSSProperties => ({
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+    height: "22px",
+    padding: "0 8px",
+    borderRadius: "var(--radius-full)",
+    border: `1px solid color-mix(in srgb, ${colorTag} 20%, var(--bg-surface) 80%)`,
+    background: `color-mix(in srgb, ${colorTag} 10%, var(--bg-surface) 90%)`,
+    color: "var(--text-primary)",
+    fontSize: "12px",
+    fontWeight: 600,
+    maxWidth: "120px",
+  });
+
+  const viewButtonActive = isViewHovered || isHovered || isActive;
+
+  const viewButtonStyle: CSSProperties = {
+    height: "28px",
+    padding: "0 12px",
+    border: `1px solid ${viewButtonActive ? "var(--accent-border)" : "var(--border-light)"}`,
+    borderRadius: "var(--radius-md)",
+    background: viewButtonActive ? "var(--accent-light)" : "var(--bg-surface)",
+    fontSize: "11px",
+    fontWeight: 600,
+    color: viewButtonActive ? "var(--accent)" : "var(--text-secondary)",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "5px",
+    transition: "all var(--transition-base)",
+    whiteSpace: "nowrap",
+    cursor: "pointer",
+  };
+
+  const viewIconStyle: CSSProperties = {
+    opacity: viewButtonActive ? 1 : 0,
+    transform: viewButtonActive ? "translateX(0)" : "translateX(-3px)",
+    transition: "all var(--transition-base)",
   };
 
   return (
-    <tr className="dl-table-row" onClick={() => onOpen(deployment.id)} style={rowStyle}>
+    <tr
+      className="dl-table-row"
+      onClick={() => onOpen(deployment.id)}
+      style={rowStyle}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setIsViewHovered(false);
+      }}
+    >
       {compareMode ? (
-        <td>
+        <td style={cellBaseStyle}>
           <input
             type="checkbox"
             checked={isSelectedForCompare}
             onChange={() => onToggleCompareSelection(deployment.id)}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
           />
         </td>
       ) : null}
-      <td className="dl-cell-status">
+
+      <td style={cellBaseStyle}>
         <StatusBadge status={deployment.unified_status} />
       </td>
-      <td>
-        <div className="dl-cell-repo-name">{deployment.repository.name}</div>
-        <div className="dl-cell-repo-owner">{deployment.repository.owner}</div>
-      </td>
-      <td>
-        <div className="dl-cell-branch">
-          <GitBranch size={12} className="dl-branch-icon-inline" />
-          <span>{deployment.branch}</span>
+
+      <td style={cellBaseStyle}>
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 600,
+            color: "var(--text-primary)",
+            maxWidth: "120px",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            margin: "0 auto",
+          }}
+        >
+          {deployment.repository.name || "—"}
         </div>
-        <span className="dl-sha-pill">{deployment.commit_sha_short}</span>
-        <div className="dl-cell-message">{deployment.commit_message ?? "—"}</div>
-        {badges.length > 0 ? (
-          <div style={{ display: "flex", gap: "4px", marginTop: "6px", flexWrap: "wrap" }}>
-            {badges.map((badge) => (
-              <span key={badge.label} style={{ ...badgeBaseStyle, ...badgeToneStyle(badge.tone) }}>
-                {badge.icon === "moon" ? (
-                  <svg width="8" height="8" viewBox="0 0 10 10" fill="none" aria-hidden>
-                    <path d="M6.4 1.2A3.8 3.8 0 1 0 8.8 6.9 4 4 0 1 1 6.4 1.2Z" fill="currentColor" />
-                  </svg>
-                ) : null}
+        <div
+          style={{
+            fontSize: "11px",
+            color: "var(--text-muted)",
+            maxWidth: "120px",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            marginTop: "2px",
+            marginInline: "auto",
+          }}
+        >
+          {deployment.repository.owner || "—"}
+        </div>
+      </td>
+
+      <td style={cellBaseStyle}>
+        <div style={{ display: "grid", gap: "2px", minWidth: 0, justifyItems: "center" }}>
+          <div style={{ ...branchRowStyle, justifyContent: "center", width: "100%" }}>
+            <GitBranch size={11} color="var(--accent)" />
+            <span style={{ ...branchNameStyle, maxWidth: "136px", textAlign: "center" }}>{deployment.branch || "—"}</span>
+          </div>
+
+          <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "6px", flexWrap: "wrap", maxWidth: "100%" }}>
+            <span style={shaPillStyle}>{deployment.commit_sha_short || "—"}</span>
+            {branchBadges.map((badge) => (
+              <span key={badge.label} style={contextBadgeStyle(badge.tone)}>
                 {badge.label}
               </span>
             ))}
           </div>
-        ) : null}
+
+          <div
+            style={{
+              fontSize: "11px",
+              color: "var(--text-muted)",
+              maxWidth: "136px",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              lineHeight: 1.3,
+              marginTop: "1px",
+              textAlign: "center",
+            }}
+            title={deployment.commit_message ?? "—"}
+          >
+            {deployment.commit_message || "—"}
+          </div>
+        </div>
       </td>
-      <td>
+
+      <td style={cellBaseStyle}>
         {deployment.environment ? (
-          <span className="dl-env-pill">
-            <span className="dl-env-dot" style={{ background: deployment.environment.color_tag }} />
-            {deployment.environment.display_name}
+          <span style={{ ...envChipStyle(deployment.environment.color_tag), margin: "0 auto" }} title={deployment.environment.display_name}>
+            <span
+              style={{
+                width: "7px",
+                height: "7px",
+                borderRadius: "50%",
+                background: deployment.environment.color_tag,
+                flexShrink: 0,
+              }}
+            />
+            <span
+              style={{
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {deployment.environment.display_name}
+            </span>
           </span>
         ) : (
-          <span className="dl-muted-dash">—</span>
+          <span style={{ color: "var(--text-muted)", fontSize: "13px" }}>—</span>
         )}
       </td>
-      <td>
+
+      <td style={cellBaseStyle}>
         {deployment.triggered_by ? (
-          <div className="dl-trigger-cell">
-            <span className="dl-trigger-avatar">{triggerInitial}</span>
-            <span className="dl-trigger-name">{deployment.triggered_by}</span>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "7px", minWidth: 0 }}>
+            <span
+              style={{
+                width: "24px",
+                height: "24px",
+                borderRadius: "50%",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: actorTone.isBot ? "8px" : "10px",
+                fontWeight: 700,
+                flexShrink: 0,
+                background: actorTone.bg,
+                color: actorTone.fg,
+              }}
+            >
+              {actorInitial}
+            </span>
+            <span
+              style={{
+                fontSize: "12px",
+                fontWeight: 500,
+                color: "var(--text-secondary)",
+                maxWidth: "92px",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+              title={deployment.triggered_by}
+            >
+              {deployment.triggered_by}
+            </span>
           </div>
         ) : (
-          <span className="dl-muted-dash">—</span>
+          <span style={{ color: "var(--text-muted)", fontSize: "13px" }}>—</span>
         )}
       </td>
-      <td>
-        <span className={`dl-cell-duration ${isRunning ? "dl-cell-duration-live" : ""}`}>
-          {liveDuration}
-        </span>
+
+      <td style={cellBaseStyle} title={new Date(deployment.created_at).toLocaleString()}>
+        <div style={{ display: "grid", gap: "2px", justifyItems: "center" }}>
+          <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--text-primary)", lineHeight: 1.2 }}>
+            {formatRelative(deployment.created_at)}
+          </span>
+          <span
+            style={{
+              fontSize: "11px",
+              color: isRunning ? "var(--status-running-text)" : "var(--text-muted)",
+              lineHeight: 1.2,
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            {whenDuration}
+          </span>
+          {isRunning ? (
+            <span
+              style={{
+                fontSize: "10px",
+                lineHeight: 1.1,
+                color: "color-mix(in srgb, var(--status-running-text) 60%, var(--bg-surface) 40%)",
+              }}
+            >
+              running
+            </span>
+          ) : null}
+        </div>
       </td>
-      <td title={new Date(deployment.created_at).toLocaleString()}>
-        <span className="dl-cell-time">{formatRelative(deployment.created_at)}</span>
-      </td>
-      <td>
+
+      <td style={cellBaseStyle}>
         <button
           type="button"
-          className="dl-view-btn"
-          onClick={(e) => {
-            e.stopPropagation();
+          style={{ ...viewButtonStyle, margin: "0 auto" }}
+          onMouseEnter={() => setIsViewHovered(true)}
+          onMouseLeave={() => setIsViewHovered(false)}
+          onClick={(event) => {
+            event.stopPropagation();
             onOpen(deployment.id);
           }}
         >
           View
+          <ChevronRight size={10} style={viewIconStyle} />
         </button>
       </td>
     </tr>

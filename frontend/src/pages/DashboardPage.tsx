@@ -9,14 +9,11 @@ import EnvironmentSwimlanes from "../components/dashboard/EnvironmentSwimlanes";
 import FilterBar from "../components/dashboard/FilterBar";
 import PipelineTable from "../components/dashboard/PipelineTable";
 import StatsRow from "../components/dashboard/StatsRow";
-import ActiveDeploymentsBanner from "../components/dashboard/ActiveDeploymentsBanner";
-import FailedDeploymentAlert from "../components/dashboard/FailedDeploymentAlert";
 import StatusFilterChips from "../components/dashboard/StatusFilterChips";
 import DensityToggle from "../components/dashboard/DensityToggle";
 import ExportButton from "../components/dashboard/ExportButton";
-import LastGoodDeploy from "../components/dashboard/LastGoodDeploy";
-import TopDeployers from "../components/dashboard/TopDeployers";
-import LongRunningWarning from "../components/dashboard/LongRunningWarning";
+import InsightBar from "../components/dashboard/InsightBar";
+import InsightPanel from "../components/dashboard/InsightPanel";
 import PageHeader from "../components/layout/PageHeader";
 import KeyboardShortcutsModal from "../components/dashboard/KeyboardShortcutsModal";
 import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
@@ -68,6 +65,7 @@ export default function DashboardPage() {
   });
 
   const [shortcutsModalOpen, setShortcutsModalOpen] = useState(false);
+  const [insightPanelOpen, setInsightPanelOpen] = useState(false);
   const handleChangeFilter = useCallback((key: Parameters<typeof setFilter>[0], value: Parameters<typeof setFilter>[1]) => {
     void setFilter(key, value);
   }, [setFilter]);
@@ -229,15 +227,11 @@ export default function DashboardPage() {
       />
 
       <div style={{ padding: "20px 32px", display: "flex", flexDirection: "column", gap: "24px" }}>
-        <ActiveDeploymentsBanner />
         <StatsRow stats={stats} isLoading={isLoadingStats} />
 
         {activeView === "pipeline" ? (
           <>
-            <LongRunningWarning />
-            <LastGoodDeploy />
-            <TopDeployers stats={stats} />
-            <FailedDeploymentAlert />
+            <InsightBar onOpenPanel={() => setInsightPanelOpen(true)} />
             <FilterBar
               filters={filters}
               onChangeFilter={handleChangeFilter}
@@ -246,10 +240,21 @@ export default function DashboardPage() {
               onToggleCompareMode={() => setCompareMode((value) => !value)}
               onToggleMine={githubUsername ? handleToggleMine : undefined}
             />
-            <StatusFilterChips stats={stats} />
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginBottom: "8px" }}>
-              <ExportButton filters={filters} />
-              <DensityToggle density={density} onChangeDensity={setDensity} />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: "12px",
+                flexWrap: "wrap",
+                marginBottom: "8px",
+              }}
+            >
+              <StatusFilterChips stats={stats} />
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginLeft: "auto" }}>
+                <ExportButton filters={filters} />
+                <DensityToggle density={density} onChangeDensity={setDensity} />
+              </div>
             </div>
             <PipelineTable
               rows={deployments}
@@ -314,6 +319,12 @@ export default function DashboardPage() {
       <KeyboardShortcutsModal
         open={shortcutsModalOpen}
         onClose={() => setShortcutsModalOpen(false)}
+      />
+
+      <InsightPanel
+        open={insightPanelOpen}
+        onClose={() => setInsightPanelOpen(false)}
+        onOpenDeployment={handleOpenDrawer}
       />
     </>
   );

@@ -1,5 +1,4 @@
 import { CSSProperties } from "react";
-import { CheckCircle2, Clock3, Loader2, RotateCcw, XCircle } from "lucide-react";
 
 type Props = {
   status: "pending" | "running" | "success" | "failed" | "rolled_back";
@@ -8,102 +7,89 @@ type Props = {
 
 const statusConfig: Record<
   Props["status"],
-  { label: string; color: string; bgColor: string; borderColor: string }
+  { label: string; color: string; bgColor: string; borderColor: string; dotColor: string }
 > = {
   pending: {
     label: "Pending",
-    color: "var(--status-pending)",
-    bgColor: "rgba(100, 116, 139, 0.08)",
-    borderColor: "var(--status-pending)",
+    color: "var(--status-pending-text)",
+    bgColor: "var(--status-pending-bg)",
+    borderColor: "var(--status-pending-border)",
+    dotColor: "var(--status-pending-text)",
   },
   running: {
     label: "Running",
-    color: "var(--status-running)",
-    bgColor: "rgba(37, 99, 235, 0.08)",
-    borderColor: "var(--status-running)",
+    color: "var(--status-running-text)",
+    bgColor: "var(--status-running-bg)",
+    borderColor: "var(--status-running-border)",
+    dotColor: "var(--status-running-text)",
   },
   success: {
     label: "Success",
-    color: "var(--status-success)",
-    bgColor: "rgba(22, 163, 74, 0.08)",
-    borderColor: "var(--status-success)",
+    color: "var(--status-success-text)",
+    bgColor: "var(--status-success-bg)",
+    borderColor: "var(--status-success-border)",
+    dotColor: "var(--status-success-text)",
   },
   failed: {
     label: "Failed",
-    color: "var(--status-failed)",
-    bgColor: "rgba(220, 38, 38, 0.08)",
-    borderColor: "var(--status-failed)",
+    color: "var(--status-failed-text)",
+    bgColor: "var(--status-failed-bg)",
+    borderColor: "var(--status-failed-border)",
+    dotColor: "var(--status-failed-text)",
   },
   rolled_back: {
     label: "Rolled back",
-    color: "var(--status-rolled-back)",
-    bgColor: "rgba(234, 88, 12, 0.08)",
-    borderColor: "var(--status-rolled-back)",
+    color: "var(--status-rolledback-text)",
+    bgColor: "var(--status-rolledback-bg)",
+    borderColor: "var(--status-rolledback-border)",
+    dotColor: "var(--status-rolledback-text)",
   },
 };
 
-function StatusIcon({ status, size }: { status: Props["status"]; size: number }) {
-  const color = statusConfig[status].color;
-
-  if (status === "pending") return <Clock3 size={size} color={color} />;
-  if (status === "running")
-    return <Loader2 size={size} color={color} style={{ animation: "spin 1.5s linear infinite" }} />;
-  if (status === "success") return <CheckCircle2 size={size} color={color} />;
-  if (status === "failed") return <XCircle size={size} color={color} />;
-  return <RotateCcw size={size} color={color} />;
-}
-
 export default function StatusBadge({ status, size = "md" }: Props) {
   const config = statusConfig[status];
-  const iconSize = size === "xs" ? 10 : size === "sm" ? 12 : size === "lg" ? 14 : 12;
-
-  if (size === "xs") {
-    const dotStyle: CSSProperties = {
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      width: "20px",
-      height: "20px",
-      borderRadius: "var(--radius-full)",
-      backgroundColor: config.bgColor,
-      border: `1px solid ${config.borderColor}`,
-    };
-
-    return (
-      <span style={dotStyle}>
-        <StatusIcon status={status} size={iconSize} />
-      </span>
-    );
-  }
+  const dimensions =
+    size === "xs"
+      ? { height: "22px", fontSize: "11px", padding: "0 8px 0 7px" }
+      : size === "sm"
+        ? { height: "24px", fontSize: "11px", padding: "0 9px 0 8px" }
+        : size === "lg"
+          ? { height: "28px", fontSize: "13px", padding: "0 11px 0 9px" }
+          : { height: "26px", fontSize: "12px", padding: "0 10px 0 8px" };
 
   const badgeStyle: CSSProperties = {
     display: "inline-flex",
     alignItems: "center",
     gap: "6px",
-    padding:
-      size === "sm"
-        ? "4px 10px"
-        : size === "lg"
-          ? "8px 14px"
-          : "6px 12px",
-    borderRadius: "var(--radius-md)",
+    height: dimensions.height,
+    padding: dimensions.padding,
+    borderRadius: "var(--radius-full)",
     backgroundColor: config.bgColor,
     border: `1px solid ${config.borderColor}`,
     color: config.color,
-    fontSize:
-      size === "sm"
-        ? "12px"
-        : size === "lg"
-          ? "14px"
-          : "13px",
-    fontWeight: 500,
+    fontSize: dimensions.fontSize,
+    fontWeight: 600,
     whiteSpace: "nowrap",
   };
 
+  const dotStyle: CSSProperties = {
+    width: "7px",
+    height: "7px",
+    borderRadius: "50%",
+    flexShrink: 0,
+    backgroundColor: config.dotColor,
+    animation: status === "running" ? "dl-status-pulse 1.4s ease infinite" : undefined,
+  };
+
   return (
-    <span style={badgeStyle}>
-      <StatusIcon status={status} size={iconSize} />
-      {config.label}
-    </span>
+    <>
+      <style>
+        {"@keyframes dl-status-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.4); } }"}
+      </style>
+      <span style={badgeStyle}>
+        <span style={dotStyle} />
+        {config.label}
+      </span>
+    </>
   );
 }

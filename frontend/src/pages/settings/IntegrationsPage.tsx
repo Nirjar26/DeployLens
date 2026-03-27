@@ -231,6 +231,18 @@ export default function IntegrationsPage() {
   const rateReset = syncStatus?.github_rate_limit_reset ?? null;
   const ratePercent = rateRemaining !== null ? Math.max(0, Math.min(100, (rateRemaining / 5000) * 100)) : 0;
   const rateClass = ratePercent > 60 ? "high" : ratePercent >= 20 ? "mid" : "low";
+  const webhookStatusRows = useMemo(() => {
+    return trackedRepos.slice(0, 5).map((repo) => {
+      const maybeSecret = (repo as unknown as { webhook_secret_exists?: boolean }).webhook_secret_exists;
+      const hasWebhook = Boolean(maybeSecret);
+      return {
+        id: repo.id,
+        name: repo.full_name || `${repo.owner || "unknown"}/${repo.name || "repo"}`,
+        hasWebhook,
+      };
+    });
+  }, [trackedRepos]);
+  const remainingWebhookCount = Math.max(0, trackedRepos.length - webhookStatusRows.length);
 
   return (
     <>
@@ -238,7 +250,7 @@ export default function IntegrationsPage() {
         title="Integrations"
         subtitle="Manage your GitHub and AWS connections"
       />
-      <SettingsLayout maxWidth="1080px">
+      <SettingsLayout>
         <div className="settings-config-wrap">
           {health ? (
             <div className={`settings-health-banner ${health.kind}`}>
@@ -269,13 +281,12 @@ export default function IntegrationsPage() {
 
                     <div className="settings-divider" />
 
-                    <KvRow label="Status" value="Connected" success />
-                    <KvRow label="Username" value={`@${githubUsername ?? "unknown"}`} />
-                    <div className="settings-kv-row">
-                      <span className="settings-kv-label">Scopes</span>
-                      <span className="settings-inline-pill settings-mono">repo, workflow</span>
+                    <div className="settings-kv-grid">
+                      <KvRow label="Status" value="Connected" success />
+                      <KvRow label="Scopes" value="repo, workflow" mono />
+                      <KvRow label="Username" value={`@${githubUsername ?? "unknown"}`} />
+                      <KvRow label="Repos" value={`${trackedRepos.length} repositories tracked`} />
                     </div>
-                    <KvRow label="Repos" value={`${trackedRepos.length} repositories tracked`} />
 
                     {tokenStatus?.valid === false ? (
                       <div className="settings-alert danger">
@@ -303,33 +314,36 @@ export default function IntegrationsPage() {
                       </div>
                     ) : null}
 
-                    <div className="settings-sync-row">
-                      <div className="settings-sync-meta">
-                        <ClockIcon />
-                        <span>Last synced: {formatRelativeTime(syncStatus?.github_last_synced ?? null)}</span>
+                    <div className="settings-sync-grid">
+                      <div className="settings-sync-item">
+                        <div className="settings-sync-meta">
+                          <ClockIcon />
+                          <span>Last synced: {formatRelativeTime(syncStatus?.github_last_synced ?? null)}</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="settings-sync-btn"
+                          onClick={() => void handleSync("github")}
+                          disabled={syncingGithub}
+                        >
+                          <RefreshIcon />
+                          {syncingGithub ? "Syncing..." : "Sync now"}
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        className="settings-sync-btn"
-                        onClick={() => void handleSync("github")}
-                        disabled={syncingGithub}
-                      >
-                        <RefreshIcon />
-                        {syncingGithub ? "Syncing..." : "Sync now"}
-                      </button>
-                    </div>
-
-                    <div className="settings-rate-row">
-                      <span className="settings-rate-label">API Rate limit:</span>
-                      <div className="settings-rate-track">
-                        <div className={`settings-rate-fill ${rateClass}`} style={{ width: `${ratePercent}%` }} />
+                      <div className="settings-sync-item">
+                        <div className="settings-rate-row">
+                          <span className="settings-rate-label">API Rate limit:</span>
+                          <div className="settings-rate-track">
+                            <div className={`settings-rate-fill ${rateClass}`} style={{ width: `${ratePercent}%` }} />
+                          </div>
+                          <span className="settings-rate-value">{rateRemaining ?? "-"} / 5000</span>
+                        </div>
+                        {rateRemaining !== null && rateRemaining < 500 && rateReset ? (
+                          <Tooltip content={`Resets in ${formatUntil(rateReset)}`}>
+                            <span className="settings-rate-reset">Resets in {formatUntil(rateReset)}</span>
+                          </Tooltip>
+                        ) : null}
                       </div>
-                      <span className="settings-rate-value">{rateRemaining ?? "-"} / 5000</span>
-                      {rateRemaining !== null && rateRemaining < 500 && rateReset ? (
-                        <Tooltip content={`Resets in ${formatUntil(rateReset)}`}>
-                          <span className="settings-rate-reset">Resets in {formatUntil(rateReset)}</span>
-                        </Tooltip>
-                      ) : null}
                     </div>
 
                     <div className="settings-divider" />
@@ -394,25 +408,29 @@ export default function IntegrationsPage() {
 
                     <div className="settings-divider" />
 
-                    <KvRow label="Account ID" value={awsAccountId || "-"} mono />
-                    <KvRow label="Region" value={awsRegion || "-"} />
-                    <KvRow label="Alias" value={awsAccountAlias || "-"} />
-                    <KvRow label="Status" value={awsAccountId ? "Credentials valid" : "Unknown"} success={Boolean(awsAccountId)} />
+                    <div className="settings-kv-grid">
+                      <KvRow label="Account ID" value={awsAccountId || "-"} mono />
+                      <KvRow label="Region" value={awsRegion || "-"} />
+                      <KvRow label="Alias" value={awsAccountAlias || "-"} />
+                      <KvRow label="Status" value={awsAccountId ? "Credentials valid" : "Unknown"} success={Boolean(awsAccountId)} />
+                    </div>
 
-                    <div className="settings-sync-row">
-                      <div className="settings-sync-meta">
-                        <ClockIcon />
-                        <span>Last synced: {formatRelativeTime(syncStatus?.aws_last_synced ?? null)}</span>
+                    <div className="settings-sync-grid single">
+                      <div className="settings-sync-item">
+                        <div className="settings-sync-meta">
+                          <ClockIcon />
+                          <span>Last synced: {formatRelativeTime(syncStatus?.aws_last_synced ?? null)}</span>
+                        </div>
+                        <button
+                          type="button"
+                          className="settings-sync-btn"
+                          onClick={() => void handleSync("aws")}
+                          disabled={syncingAws}
+                        >
+                          <RefreshIcon />
+                          {syncingAws ? "Syncing..." : "Sync now"}
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        className="settings-sync-btn"
-                        onClick={() => void handleSync("aws")}
-                        disabled={syncingAws}
-                      >
-                        <RefreshIcon />
-                        {syncingAws ? "Syncing..." : "Sync now"}
-                      </button>
                     </div>
 
                     <div className="settings-divider" />
@@ -465,49 +483,73 @@ export default function IntegrationsPage() {
               </div>
               <StatusBadge connected={githubConnected} />
             </header>
-            <div className="settings-card-body">
-              <div className="settings-webhook-url-row">
-                <span className="settings-kv-label">Endpoint URL</span>
-                <div className="settings-webhook-url-wrap">
-                  <Tooltip content={webhookUrl}>
-                    <span className="settings-webhook-url settings-mono">{webhookUrl}</span>
-                  </Tooltip>
-                  <CopyButton text={webhookUrl} />
+            <div className="settings-card-body settings-webhook-layout">
+              <div className="settings-webhook-main">
+                <div className="settings-webhook-url-row">
+                  <span className="settings-kv-label">Endpoint URL</span>
+                  <div className="settings-webhook-url-wrap">
+                    <Tooltip content={webhookUrl}>
+                      <span className="settings-webhook-url settings-mono">{webhookUrl}</span>
+                    </Tooltip>
+                    <CopyButton text={webhookUrl} />
+                  </div>
                 </div>
+
+                <button
+                  type="button"
+                  className="settings-webhook-toggle"
+                  onClick={() => setWebhookOpen((current) => !current)}
+                >
+                  How to configure webhooks {webhookOpen ? "▲" : "▼"}
+                </button>
+
+                {webhookOpen ? (
+                  <div className="settings-steps-wrap">
+                    <div className="settings-step-row">
+                      <span className="settings-step-number">1</span>
+                      <div>
+                        <div className="settings-step-title">Copy the endpoint URL above</div>
+                      </div>
+                    </div>
+                    <div className="settings-step-row">
+                      <span className="settings-step-number">2</span>
+                      <div>
+                        <div className="settings-step-title">Go to GitHub repo settings and add webhook</div>
+                        <div className="settings-step-body">Use the repository webhook secret from the Repositories page.</div>
+                      </div>
+                    </div>
+                    <div className="settings-step-row">
+                      <span className="settings-step-number">3</span>
+                      <div>
+                        <div className="settings-step-title">Select event and content type</div>
+                        <div className="settings-step-body">Choose Workflow runs event only and set content type to application/json.</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
-              <button
-                type="button"
-                className="settings-webhook-toggle"
-                onClick={() => setWebhookOpen((current) => !current)}
-              >
-                How to configure webhooks {webhookOpen ? "▲" : "▼"}
-              </button>
-
-              {webhookOpen ? (
-                <div className="settings-steps-wrap">
-                  <div className="settings-step-row">
-                    <span className="settings-step-number">1</span>
-                    <div>
-                      <div className="settings-step-title">Copy the endpoint URL above</div>
-                    </div>
+              <aside className="settings-webhook-status">
+                <div className="settings-webhook-status-title">Endpoint status</div>
+                {webhookStatusRows.length === 0 ? (
+                  <div className="settings-webhook-status-empty">No repositories tracked</div>
+                ) : (
+                  <div className="settings-webhook-status-list">
+                    {webhookStatusRows.map((row) => (
+                      <div key={row.id} className="settings-webhook-status-row">
+                        <span className="settings-webhook-status-name" title={row.name}>{row.name}</span>
+                        <span className={`settings-webhook-status-dot ${row.hasWebhook ? "ok" : "warn"}`} />
+                        <span className="settings-webhook-status-text">
+                          {row.hasWebhook ? "Receiving events" : "Not configured"}
+                        </span>
+                      </div>
+                    ))}
+                    {remainingWebhookCount > 0 ? (
+                      <div className="settings-webhook-status-more">+{remainingWebhookCount} more</div>
+                    ) : null}
                   </div>
-                  <div className="settings-step-row">
-                    <span className="settings-step-number">2</span>
-                    <div>
-                      <div className="settings-step-title">Go to GitHub repo settings and add webhook</div>
-                      <div className="settings-step-body">Use the repository webhook secret from the Repositories page.</div>
-                    </div>
-                  </div>
-                  <div className="settings-step-row">
-                    <span className="settings-step-number">3</span>
-                    <div>
-                      <div className="settings-step-title">Select event and content type</div>
-                      <div className="settings-step-body">Choose Workflow runs event only and set content type to application/json.</div>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
+                )}
+              </aside>
             </div>
           </section>
         </div>

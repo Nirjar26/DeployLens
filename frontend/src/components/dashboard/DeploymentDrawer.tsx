@@ -1,20 +1,11 @@
-import { ExternalLink, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ExternalLink, X, CheckCircle2, AlertTriangle, Clock3, Loader2, SkipForward, Zap, Info } from "lucide-react";
+import { CSSProperties, useEffect, useMemo, useState } from "react";
 import { deployments, github } from "../../lib/api";
 import { unwatchDeployment, watchDeployment } from "../../lib/socket";
 import { useAwsStore } from "../../store/awsStore";
 import { DeploymentDetail } from "../../store/deploymentStore";
 import StatusBadge from "./StatusBadge";
-
-function formatDuration(seconds: number | null): string {
-  if (seconds === null || seconds < 0) return "—";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
-}
+import { formatDuration, formatElapsed } from "../../lib/formatters";
 
 type Props = {
   open: boolean;
@@ -148,20 +139,93 @@ export default function DeploymentDrawer({ open, detail, isLoading, onClose, onO
 
   if (!open) return null;
 
+  const headerRowStyle: CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "12px",
+    padding: "16px 20px 12px 20px",
+    borderBottom: "1px solid var(--border-light)",
+    backgroundColor: "var(--bg-sunken)",
+  };
+
+  const headerContentStyle: CSSProperties = {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    marginTop: "10px",
+  };
+
+  const shaPillStyle: CSSProperties = {
+    display: "inline-flex",
+    borderRadius: "999px",
+    padding: "4px 10px",
+    backgroundColor: "var(--bg-hover)",
+    fontFamily: "var(--font-mono)",
+    fontSize: "11px",
+    color: "var(--text-muted)",
+    width: "fit-content",
+  };
+
+  const commitMessageStyle: CSSProperties = {
+    fontSize: "14px",
+    fontWeight: 600,
+    color: "var(--text-primary)",
+    marginTop: "4px",
+    lineHeight: 1.3,
+  };
+
+  const envStyle: CSSProperties = {
+    fontSize: "12px",
+    color: "var(--text-muted)",
+    marginTop: "2px",
+  };
+
+  const closeButtonStyle: CSSProperties = {
+    width: "28px",
+    height: "28px",
+    border: "none",
+    background: "transparent",
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "var(--text-secondary)",
+    transition: "color var(--transition-fast)",
+  };
+
   return (
     <div className="drawer-overlay" onClick={onClose}>
       <aside className="deployment-drawer" onClick={(e) => e.stopPropagation()}>
-        <header className="drawer-header">
+        <div style={headerRowStyle}>
+          {/* Left: Status Badge */}
           <StatusBadge status={detail?.unified_status ?? "pending"} size="lg" />
-          <button type="button" className="icon-btn" onClick={onClose}><X size={16} /></button>
-          {detail ? (
-            <>
-              <div className="sha-pill large">{detail.commit_sha_short}</div>
-              <h3>{detail.commit_message ?? "No commit message"}</h3>
-              <p>{detail.environment ? `in ${detail.environment.display_name}` : "Unassigned environment"}</p>
-            </>
-          ) : null}
-        </header>
+          {/* Right: Close Button */}
+          <button
+            type="button"
+            style={closeButtonStyle}
+            onClick={onClose}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)";
+            }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* SHA + Commit Message below */}
+        {detail && (
+          <div style={headerContentStyle}>
+            <div style={shaPillStyle}>{detail.commit_sha_short}</div>
+            <h3 style={commitMessageStyle}>{detail.commit_message ?? "No commit message"}</h3>
+            <div style={envStyle}>
+              {detail.environment ? `in ${detail.environment.display_name}` : "Unassigned environment"}
+            </div>
+          </div>
+        )}
 
         {isLoading || !detail ? (
           <div className="drawer-body"><div className="repo-skeleton" /><div className="repo-skeleton" /><div className="repo-skeleton" /></div>
@@ -170,30 +234,100 @@ export default function DeploymentDrawer({ open, detail, isLoading, onClose, onO
             <section className="drawer-section">
               <h4>Overview</h4>
               <div className="overview-grid">
-                <div><strong>Repository:</strong> {detail.repository.full_name}</div>
-                <div><strong>Branch:</strong> {detail.branch}</div>
-                <div><strong>Triggered by:</strong> {detail.triggered_by ?? "—"}</div>
-                <div><strong>Started:</strong> {detail.started_at ? new Date(detail.started_at).toLocaleString() : "—"}</div>
-                <div><strong>Finished:</strong> {detail.finished_at ? new Date(detail.finished_at).toLocaleString() : "—"}</div>
                 <div>
-                  <strong>Duration:</strong> {detail.duration_seconds !== null
-                    ? formatDuration(detail.duration_seconds)
-                    : detail.started_at && detail.unified_status === "running"
-                      ? formatDuration(Math.max(0, Math.floor((now - new Date(detail.started_at).getTime()) / 1000)))
-                      : "—"}
+                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", marginBottom: "3px" }}>Repository</div>
+                  <a href={`https://github.com/${detail.repository.full_name}`} target="_blank" rel="noreferrer" style={{ color: "var(--accent)", fontWeight: 500, fontSize: "13px", textDecoration: "none" }}>
+                    {detail.repository.full_name}
+                  </a>
                 </div>
-                <div><strong>Is rollback:</strong> {detail.is_rollback ? "Yes" : "No"}</div>
+                <div>
+                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", marginBottom: "3px" }}>Branch</div>
+                  <div style={{ fontWeight: 500, fontSize: "13px", color: "var(--text-primary)" }}>{detail.branch}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", marginBottom: "3px" }}>Triggered by</div>
+                  <div style={{ fontWeight: 500, fontSize: "13px", color: "var(--text-primary)" }}>{detail.triggered_by ?? "—"}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", marginBottom: "3px" }}>Started</div>
+                  <div style={{ fontWeight: 500, fontSize: "13px", color: "var(--text-primary)" }}>
+                    {detail.started_at ? new Date(detail.started_at).toLocaleString() : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", marginBottom: "3px" }}>Finished</div>
+                  <div style={{ fontWeight: 500, fontSize: "13px", color: "var(--text-primary)" }}>
+                    {detail.finished_at ? new Date(detail.finished_at).toLocaleString() : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", marginBottom: "3px" }}>
+                    {detail.unified_status === "running" ? "Running for" : "Duration"}
+                  </div>
+                  <div style={{ fontWeight: 500, fontSize: "13px", color: detail.unified_status === "running" ? "var(--status-running-text)" : "var(--text-primary)" }}>
+                    {detail.unified_status === "running" && detail.started_at
+                      ? formatElapsed(detail.started_at).replace(" ago", "")
+                      : detail.duration_seconds !== null
+                        ? formatDuration(detail.duration_seconds)
+                        : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: "10px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.5px", color: "var(--text-muted)", marginBottom: "3px" }}>Is rollback</div>
+                  <div style={{ fontWeight: 500, fontSize: "13px", color: "var(--text-primary)" }}>
+                    {detail.is_rollback ? "Yes" : "No"}
+                  </div>
+                </div>
               </div>
             </section>
 
             {detail.github_run_url ? (
               <section className="drawer-section">
                 <h4>GitHub Actions</h4>
-                <a href={detail.github_run_url} target="_blank" rel="noreferrer" className="link-button">View run on GitHub <ExternalLink size={12} /></a>
-                {detail.events.filter((e) => e.source === "github").length === 0 ? <p>No step data available</p> : null}
+                <a
+                  href={detail.github_run_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "var(--accent)",
+                    textDecoration: "none",
+                    marginBottom: "10px",
+                  }}
+                >
+                  View run on GitHub
+                  <ExternalLink size={11} />
+                </a>
+
+                {detail.events.filter((e) => e.source === "github").length === 0 ? (
+                  <div
+                    style={{
+                      backgroundColor: "var(--bg-sunken)",
+                      borderRadius: "var(--radius-md)",
+                      padding: "12px 14px",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <Info size={13} color="var(--text-muted)" />
+                    <span style={{ fontSize: "12px", color: "var(--text-muted)", fontStyle: "italic" }}>
+                      No step data available
+                    </span>
+                  </div>
+                ) : null}
 
                 {detail.unified_status === "failed" && detail.github_run_id ? (
-                  <button type="button" className="auth-btn auth-btn-secondary" onClick={() => void handleRerun()} disabled={rerunLoading}>
+                  <button
+                    type="button"
+                    className="auth-btn auth-btn-secondary"
+                    onClick={() => void handleRerun()}
+                    disabled={rerunLoading}
+                  >
                     {rerunLoading ? "Triggering..." : "Re-run workflow"}
                   </button>
                 ) : null}
@@ -203,16 +337,105 @@ export default function DeploymentDrawer({ open, detail, isLoading, onClose, onO
             {detail.codedeploy_id ? (
               <section className="drawer-section">
                 <h4>CodeDeploy</h4>
-                {lifecycleEvents.length === 0 ? <p>No step data available</p> : lifecycleEvents.map((event) => (
-                  <div key={`${event.source}-${event.event_name}`} className="event-row">
-                    <div>
-                      <strong>{event.event_name}</strong>
-                      {event.message ? <p>{event.message}</p> : null}
-                      {event.log_url ? <a href={event.log_url} target="_blank" rel="noreferrer">View logs</a> : null}
-                    </div>
-                    <span>{event.status}</span>
-                  </div>
-                ))}
+                {lifecycleEvents.length === 0 ? (
+                  <p>No step data available</p>
+                ) : (
+                  lifecycleEvents.map((event) => {
+                    const getStatusIcon = (status: string) => {
+                      switch (status.toLowerCase()) {
+                        case "succeeded":
+                          return <CheckCircle2 size={16} color="var(--status-success-text)" />;
+                        case "failed":
+                          return <AlertTriangle size={16} color="var(--status-failed-text)" />;
+                        case "inprogress":
+                          return <Loader2 size={16} color="var(--status-running-text)" style={{ animation: "spin 1s linear infinite" }} />;
+                        case "pending":
+                          return <Clock3 size={16} color="var(--text-muted)" />;
+                        case "skipped":
+                          return <SkipForward size={16} color="var(--border-medium)" />;
+                        default:
+                          return null;
+                      }
+                    };
+
+                    const getStatusColor = (status: string) => {
+                      switch (status.toLowerCase()) {
+                        case "succeeded":
+                          return "var(--status-success-text)";
+                        case "failed":
+                          return "var(--status-failed-text)";
+                        case "inprogress":
+                          return "var(--status-running-text)";
+                        default:
+                          return "var(--text-muted)";
+                      }
+                    };
+
+                    const isFailed = event.status.toLowerCase() === "failed";
+
+                    return (
+                      <div
+                        key={`${event.source}-${event.event_name}`}
+                        style={{
+                          height: "auto",
+                          display: "flex",
+                          alignItems: "flex-start",
+                          padding: "10px 14px",
+                          borderBottom: "1px solid var(--bg-sunken)",
+                          gap: "10px",
+                          backgroundColor: isFailed ? "rgba(239, 68, 68, 0.05)" : "transparent",
+                        }}
+                      >
+                        <div style={{ marginTop: "2px", flexShrink: 0 }}>
+                          {getStatusIcon(event.status)}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              fontSize: "13px",
+                              fontWeight: 500,
+                              color: "var(--text-primary)",
+                            }}
+                          >
+                            {event.event_name}
+                          </div>
+                          {event.message && isFailed && (
+                            <div style={{ fontSize: "11px", color: "var(--status-failed-text)", marginTop: "2px" }}>
+                              {event.message}
+                            </div>
+                          )}
+                          {event.log_url && (
+                            <a
+                              href={event.log_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{
+                                fontSize: "11px",
+                                color: "var(--accent)",
+                                textDecoration: "none",
+                                marginTop: "4px",
+                                display: "inline-block",
+                              }}
+                            >
+                              View logs →
+                            </a>
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "11px",
+                            fontWeight: 500,
+                            color: getStatusColor(event.status),
+                            whiteSpace: "nowrap",
+                            marginTop: "2px",
+                          }}
+                        >
+                          {event.status}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </section>
             ) : null}
 

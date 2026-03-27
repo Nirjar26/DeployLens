@@ -319,18 +319,8 @@ export default function EnvironmentsPage() {
       <PageHeader
         title="Environments"
         subtitle="CodeDeploy group mappings"
-        actions={(
-          <button
-            type="button"
-            className="settings-btn settings-btn-primary settings-toolbar-btn"
-            onClick={() => navigate("/onboarding/environments")}
-          >
-            <PlusIcon />
-            Add environment
-          </button>
-        )}
       />
-      <SettingsLayout maxWidth="980px">
+      <SettingsLayout>
         <div className="settings-config-wrap">
           {!awsConnected ? (
             <div className="settings-warning-card">
@@ -351,23 +341,28 @@ export default function EnvironmentsPage() {
 
           {awsConnected && environmentCount > 0 ? (
             <div className="settings-env-summary-bar">
-              <div className="settings-env-summary-list">
-                {summaryRows.map((env) => {
-                  const stats = statsByEnvironment[env.id];
-                  const status = statusClass(stats?.last_deployment_status ?? "pending");
-                  return (
-                    <div key={env.id} className="settings-env-summary-chip">
-                      <span className="settings-env-summary-color" style={{ background: env.color_tag }} />
-                      <span className="settings-env-summary-name">{env.display_name}</span>
-                      <span className={`settings-env-summary-status ${status}`}>{stats?.last_deployment_status ?? "pending"}</span>
-                      <span className="settings-env-summary-time">{formatRelativeTime(stats?.last_deployment_at ?? null)}</span>
-                    </div>
-                  );
-                })}
-                {environmentCount > 4 ? <span className="settings-env-summary-more">+{environmentCount - 4} more</span> : null}
+              <div className="settings-env-summary-main">
+                <div className="settings-env-summary-title">
+                  {failedSummaryCount > 0 ? `${failedSummaryCount} environments with issues` : "All systems operational"}
+                </div>
+                <div className="settings-env-summary-list">
+                  {summaryRows.map((env) => {
+                    const stats = statsByEnvironment[env.id];
+                    const status = statusClass(stats?.last_deployment_status ?? "pending");
+                    return (
+                      <div key={env.id} className="settings-env-summary-chip">
+                        <span className="settings-env-summary-color" style={{ background: env.color_tag }} />
+                        <span className="settings-env-summary-name">{env.display_name}</span>
+                        <span className={`settings-env-summary-status ${status}`}>{stats?.last_deployment_status ?? "pending"}</span>
+                        <span className="settings-env-summary-time">{formatRelativeTime(stats?.last_deployment_at ?? null)}</span>
+                      </div>
+                    );
+                  })}
+                  {environmentCount > 4 ? <span className="settings-env-summary-more">+{environmentCount - 4} more</span> : null}
+                </div>
               </div>
-              <div className="settings-env-summary-health">
-                <span className={`settings-status-dot ${failedSummaryCount > 0 ? "failed" : "success"}`} />
+              <div className={`settings-env-summary-health ${failedSummaryCount > 0 ? "failing" : "healthy"}`}>
+                {failedSummaryCount > 0 ? <WarningIcon /> : <span className="settings-status-dot success" />}
                 <span>
                   {failedSummaryCount > 0
                     ? `${failedSummaryCount} environments with recent failures`
@@ -379,15 +374,31 @@ export default function EnvironmentsPage() {
 
           {awsConnected ? (
             <>
-              <div className="settings-stat-row">
+              <div className="settings-stat-row settings-env-header-row">
                 <div className="settings-stat-chip">
                   <span className="settings-stat-dot active" aria-hidden="true" />
                   <span className="settings-stat-number">{environmentCount}</span>
                   <span className="settings-stat-label">Environments configured</span>
                 </div>
+                <button
+                  type="button"
+                  className="settings-btn settings-btn-primary settings-toolbar-btn"
+                  onClick={() => navigate("/onboarding/environments")}
+                >
+                  <PlusIcon />
+                  Add environment
+                </button>
               </div>
 
-              <section className="settings-list-shell">
+              <section className="settings-list-shell settings-env-table-shell">
+                <div className="settings-env-table-header">
+                  <span className="settings-col-header">Color</span>
+                  <span className="settings-col-header">Environment</span>
+                  <span className="settings-col-header">CodeDeploy path</span>
+                  <span className="settings-col-header">Deploys</span>
+                  <span className="settings-col-header">Last 5</span>
+                  <span className="settings-col-header" />
+                </div>
                 {environmentCount === 0 ? (
                   <div className="settings-empty-block">
                     <LayerIcon size={32} />
@@ -410,7 +421,7 @@ export default function EnvironmentsPage() {
                     const currentTest = testState[env.id];
 
                     return (
-                      <div key={env.id} className={`settings-row ${isEditing ? "settings-env-edit" : ""}`}>
+                      <div key={env.id} className={`settings-row settings-env-row ${isEditing ? "settings-env-edit" : ""}`}>
                         {!isEditing ? (
                           <>
                             <div
@@ -423,46 +434,45 @@ export default function EnvironmentsPage() {
                               <span className="settings-env-color-dot" style={{ background: activeColor }} />
                             </div>
 
-                            <div className="settings-row-main">
-                              <div className="settings-row-title" style={{ textTransform: "capitalize", fontWeight: 700 }}>
+                            <div className="settings-row-main settings-env-main-cell">
+                              <div className="settings-row-title" style={{ textTransform: "capitalize", fontWeight: 700, fontSize: "15px" }}>
                                 {env.display_name}
                               </div>
                               <div className="settings-row-meta">
                                 <span className="settings-tag base">{(env.repository_full_name || "unknown/repo").split("/").pop() || env.repository_full_name || "unknown/repo"}</span>
-                                <span className="settings-meta-text">→</span>
-                                <span className="settings-env-path">
-                                  {env.codedeploy_app || "app"} / {env.codedeploy_group || "group"}
-                                </span>
-                              </div>
-                              <div className="settings-row-meta settings-row-meta-3">
-                                <span className="settings-tag base">{stats?.total_deployments ?? 0} deploys</span>
-                                {stats?.last_deployment_at ? (
-                                  <span className="settings-meta-with-dot">
-                                    <span className={`settings-status-dot ${statusClass(stats.last_deployment_status ?? "pending")}`} />
-                                    Last: {formatRelativeTime(stats.last_deployment_at)}
-                                  </span>
-                                ) : (
-                                  <span className="settings-meta-text">No deployments yet</span>
-                                )}
-                                <span className="settings-meta-text">Last 5:</span>
-                                <div className="settings-health-dots">
-                                  {Array.from({ length: 5 }).map((_, index) => {
-                                    const status = stats?.recent_statuses?.[index];
-                                    if (!status) {
-                                      return <span key={index} className="settings-status-dot empty" />;
-                                    }
-
-                                    return (
-                                      <Tooltip key={index} content={status}>
-                                        <span className={`settings-status-dot ${statusClass(status)}`} />
-                                      </Tooltip>
-                                    );
-                                  })}
-                                </div>
                               </div>
                               {currentTest && !currentTest.loading && currentTest.valid === false ? (
                                 <div className="settings-row-footer-error">{currentTest.message}</div>
                               ) : null}
+                            </div>
+
+                            <div className="settings-env-path-cell">
+                              <div className="settings-env-path-line">{env.codedeploy_app || "app"}</div>
+                              <div className="settings-env-path-line muted">→ {env.codedeploy_group || "group"}</div>
+                            </div>
+
+                            <div className="settings-env-deploy-cell">
+                              <div className="settings-env-deploy-count">{stats?.total_deployments ?? 0}</div>
+                              <div className="settings-env-deploy-label">deployments</div>
+                              <div className="settings-meta-text">Last: {formatRelativeTime(stats?.last_deployment_at ?? null)}</div>
+                            </div>
+
+                            <div className="settings-env-health-cell">
+                              <span className="settings-col-mini-label">Last 5</span>
+                              <div className="settings-health-dots settings-health-dots-lg">
+                                {Array.from({ length: 5 }).map((_, index) => {
+                                  const status = stats?.recent_statuses?.[index];
+                                  if (!status) {
+                                    return <span key={index} className="settings-status-dot empty" />;
+                                  }
+
+                                  return (
+                                    <Tooltip key={index} content={`${status} · ${formatRelativeTime(stats?.last_deployment_at ?? null)}`}>
+                                      <span className={`settings-status-dot ${statusClass(status)}`} />
+                                    </Tooltip>
+                                  );
+                                })}
+                              </div>
                             </div>
 
                             <div className="settings-actions-right">
@@ -509,6 +519,7 @@ export default function EnvironmentsPage() {
                           </>
                         ) : (
                           <>
+                            <div className="settings-env-edit-inline">
                             <input
                               className="settings-env-input"
                               value={editName}
@@ -554,6 +565,7 @@ export default function EnvironmentsPage() {
                               >
                                 Cancel
                               </button>
+                            </div>
                             </div>
 
                             {editError ? <div className="settings-row-footer-error">{editError}</div> : null}

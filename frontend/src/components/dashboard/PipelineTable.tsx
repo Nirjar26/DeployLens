@@ -1,11 +1,14 @@
-import { CSSProperties } from "react";
-import { useState } from "react";
+import { CSSProperties, useState } from "react";
 import { CheckCircle2, Clock3, Timer, Users } from "lucide-react";
-import { DeploymentRow as DeploymentRowType, PaginationInfo } from "../../store/deploymentStore";
+import {
+  DeploymentFilters,
+  DeploymentRow as DeploymentRowType,
+  PaginationInfo,
+  useDeploymentStore,
+} from "../../store/deploymentStore";
 import DeploymentRow from "./DeploymentRow";
 import EmptyState from "./EmptyState";
 import LoadingSkeleton from "./LoadingSkeleton";
-import { DeploymentFilters } from "../../store/deploymentStore";
 
 type Props = {
   rows: DeploymentRowType[];
@@ -47,6 +50,8 @@ export default function PipelineTable({
   density = "default",
 }: Props) {
   const [jumpPage, setJumpPage] = useState("");
+  const [hoveredHeader, setHoveredHeader] = useState<"unified_status" | "created_at" | null>(null);
+  const selectedDeploymentId = useDeploymentStore((state) => state.selectedDeploymentId);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -66,7 +71,6 @@ export default function PipelineTable({
   const totalPages = pagination?.totalPages ?? 1;
   const currentPage = pagination?.page ?? 1;
 
-  // Generate page numbers: current ±2
   const pageNumbers: number[] = [];
   for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
     pageNumbers.push(i);
@@ -76,6 +80,7 @@ export default function PipelineTable({
     backgroundColor: "var(--bg-surface)",
     border: "1px solid var(--border-light)",
     borderRadius: "var(--radius-lg)",
+    boxShadow: "var(--shadow-xs)",
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
@@ -83,7 +88,6 @@ export default function PipelineTable({
 
   const compareBannerStyle: CSSProperties = {
     backgroundColor: "var(--bg-sunken)",
-    border: "1px solid var(--border-light)",
     borderBottom: "1px solid var(--border-light)",
     padding: "12px 20px",
     display: "flex",
@@ -110,6 +114,7 @@ export default function PipelineTable({
   const tableStyle: CSSProperties = {
     width: "100%",
     borderCollapse: "collapse",
+    tableLayout: "fixed",
     fontSize: "13px",
   };
 
@@ -119,17 +124,20 @@ export default function PipelineTable({
   };
 
   const theadThStyle: CSSProperties = {
-    padding: "12px 16px",
-    textAlign: "left",
-    fontWeight: 600,
-    color: "var(--text-secondary)",
-    fontSize: "12px",
+    padding: "0 16px",
+    height: "36px",
+    textAlign: "center",
+    fontWeight: 700,
+    color: "var(--text-muted)",
+    fontSize: "10px",
     textTransform: "uppercase",
-    letterSpacing: "0.5px",
+    letterSpacing: "0.8px",
+    whiteSpace: "nowrap",
+    userSelect: "none",
   };
 
   const tableBodyStyle: CSSProperties = {
-    // table content
+    background: "var(--bg-surface)",
   };
 
   const paginationStyle: CSSProperties = {
@@ -137,7 +145,7 @@ export default function PipelineTable({
     alignItems: "center",
     justifyContent: "space-between",
     gap: "16px",
-    padding: "16px 20px",
+    padding: "10px 16px",
     borderTop: "1px solid var(--border-light)",
     backgroundColor: "var(--bg-sunken)",
     fontSize: "13px",
@@ -198,7 +206,7 @@ export default function PipelineTable({
   };
 
   const summaryStyle: CSSProperties = {
-    borderTop: "2px solid var(--border-light)",
+    borderTop: "1px solid var(--border-light)",
     background: "var(--bg-sunken)",
     padding: "10px 16px",
     display: "flex",
@@ -251,23 +259,42 @@ export default function PipelineTable({
   const sortableHeaderStyle: CSSProperties = {
     ...theadThStyle,
     cursor: "pointer",
-    userSelect: "none",
     display: "flex",
     alignItems: "center",
     gap: "4px",
   };
 
-  const sortIndicatorStyle = (column: string): CSSProperties => ({
-    fontSize: "10px",
+  const sortIndicatorStyle = (column: "created_at" | "unified_status"): CSSProperties => ({
+    color: sortBy === column ? "var(--accent)" : "var(--text-muted)",
     opacity: sortBy === column ? 1 : 0.4,
     transition: "opacity var(--transition-fast)",
+    display: "inline-flex",
+    alignItems: "center",
   });
 
-  const getSortIndicator = (column: "created_at" | "duration_seconds" | "unified_status") => {
-    if (sortBy !== column) {
-      return "↕";
+  const renderSortIndicator = (column: "created_at" | "unified_status") => {
+    if (sortBy === column && sortDir === "asc") {
+      return (
+        <svg width="8" height="8" viewBox="0 0 10 10" fill="none" aria-hidden>
+          <path d="M5 2L8 6H2L5 2Z" fill="currentColor" />
+        </svg>
+      );
     }
-    return sortDir === "asc" ? "↑" : "↓";
+
+    if (sortBy === column && sortDir === "desc") {
+      return (
+        <svg width="8" height="8" viewBox="0 0 10 10" fill="none" aria-hidden>
+          <path d="M2 4H8L5 8L2 4Z" fill="currentColor" />
+        </svg>
+      );
+    }
+
+    return (
+      <svg width="8" height="8" viewBox="0 0 10 10" fill="none" aria-hidden>
+        <path d="M5 1.5L7.6 4.1H2.4L5 1.5Z" fill="currentColor" />
+        <path d="M2.4 5.9H7.6L5 8.5L2.4 5.9Z" fill="currentColor" />
+      </svg>
+    );
   };
 
   const durations = rows
@@ -279,11 +306,12 @@ export default function PipelineTable({
 
   const successCount = rows.filter((row) => row.unified_status === "success").length;
   const pageSuccessRate = rows.length === 0 ? 0 : Math.round((successCount / rows.length) * 100);
-  const pageSuccessColor = pageSuccessRate > 80
-    ? "var(--status-success-text)"
-    : pageSuccessRate >= 50
-      ? "var(--status-warning-text)"
-      : "var(--status-failed-text)";
+  const pageSuccessColor =
+    pageSuccessRate > 80
+      ? "var(--status-success-text)"
+      : pageSuccessRate >= 50
+        ? "var(--status-warning-text)"
+        : "var(--status-failed-text)";
 
   const uniqueDeployers = new Set(rows.map((row) => row.triggered_by).filter(Boolean)).size;
 
@@ -318,33 +346,56 @@ export default function PipelineTable({
       )}
 
       <table style={tableStyle}>
+        <colgroup>
+          {compareMode ? <col style={{ width: "6%" }} /> : null}
+          <col style={{ width: compareMode ? "10%" : "10%" }} />
+          <col style={{ width: compareMode ? "12%" : "12%" }} />
+          <col style={{ width: compareMode ? "30%" : "34%" }} />
+          <col style={{ width: compareMode ? "13%" : "13%" }} />
+          <col style={{ width: compareMode ? "13%" : "13%" }} />
+          <col style={{ width: compareMode ? "10%" : "10%" }} />
+          <col style={{ width: compareMode ? "6%" : "8%" }} />
+        </colgroup>
         <thead style={tableHeadStyle}>
           <tr>
             {compareMode ? <th style={{ ...theadThStyle, width: 56 }}>Pick</th> : null}
-            <th style={{ ...theadThStyle, width: 130 }}>Status</th>
+            <th
+              style={{
+                ...sortableHeaderStyle,
+                color:
+                  hoveredHeader === "unified_status" || sortBy === "unified_status"
+                    ? "var(--text-secondary)"
+                    : "var(--text-muted)",
+              }}
+              onMouseEnter={() => setHoveredHeader("unified_status")}
+              onMouseLeave={() => setHoveredHeader(null)}
+              onClick={() => {
+                if (onSort) {
+                  if (sortBy === "unified_status") {
+                    onSort("unified_status", sortDir === "asc" ? "desc" : "asc");
+                  } else {
+                    onSort("unified_status", "asc");
+                  }
+                }
+              }}
+            >
+              Status
+              <span style={sortIndicatorStyle("unified_status")}>{renderSortIndicator("unified_status")}</span>
+            </th>
             <th style={theadThStyle}>Repo</th>
             <th style={theadThStyle}>Branch / Commit</th>
             <th style={theadThStyle}>Environment</th>
             <th style={theadThStyle}>Triggered by</th>
             <th
-              style={sortableHeaderStyle}
-              onClick={() => {
-                if (onSort) {
-                  if (sortBy === "duration_seconds") {
-                    onSort("duration_seconds", sortDir === "asc" ? "desc" : "asc");
-                  } else {
-                    onSort("duration_seconds", "desc");
-                  }
-                }
+              style={{
+                ...sortableHeaderStyle,
+                color:
+                  hoveredHeader === "created_at" || sortBy === "created_at"
+                    ? "var(--text-secondary)"
+                    : "var(--text-muted)",
               }}
-            >
-              Duration
-              <span style={sortIndicatorStyle("duration_seconds")}>
-                {getSortIndicator("duration_seconds")}
-              </span>
-            </th>
-            <th
-              style={sortableHeaderStyle}
+              onMouseEnter={() => setHoveredHeader("created_at")}
+              onMouseLeave={() => setHoveredHeader(null)}
               onClick={() => {
                 if (onSort) {
                   if (sortBy === "created_at") {
@@ -355,16 +406,14 @@ export default function PipelineTable({
                 }
               }}
             >
-              Time
-              <span style={sortIndicatorStyle("created_at")}>
-                {getSortIndicator("created_at")}
-              </span>
+              When
+              <span style={sortIndicatorStyle("created_at")}>{renderSortIndicator("created_at")}</span>
             </th>
-            <th style={{ ...theadThStyle, width: 80 }}>Actions</th>
+            <th style={theadThStyle}>Actions</th>
           </tr>
         </thead>
         <tbody style={tableBodyStyle}>
-          {rows.map((row) => (
+          {rows.map((row, index) => (
             <DeploymentRow
               key={row.id}
               deployment={row}
@@ -372,7 +421,10 @@ export default function PipelineTable({
               compareMode={compareMode}
               isSelectedForCompare={compareSelection.includes(row.id)}
               onToggleCompareSelection={onToggleCompareSelection}
-                         density={density}
+              density={density}
+              rowIndex={index}
+              isLastRow={index === rows.length - 1}
+              isActive={selectedDeploymentId === row.id}
             />
           ))}
         </tbody>
@@ -405,9 +457,8 @@ export default function PipelineTable({
       {pagination && (
         <div style={paginationStyle}>
           <span style={paginationInfoStyle}>
-            Showing {(pagination.page - 1) * pagination.limit + 1}–
-            {Math.min(pagination.page * pagination.limit, pagination.total)} of{" "}
-            {pagination.total} deployments
+            Showing {(pagination.page - 1) * pagination.limit + 1} -
+            {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} deployments
           </span>
 
           <div style={paginationCenterStyle}>
@@ -446,9 +497,9 @@ export default function PipelineTable({
               placeholder="Go to"
               value={jumpPage}
               min={1}
-              onChange={(e) => setJumpPage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
+              onChange={(event) => setJumpPage(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
                   const num = Number.parseInt(jumpPage, 10);
                   if (!Number.isNaN(num) && num > 0) {
                     onSetPage(num);
@@ -465,14 +516,20 @@ export default function PipelineTable({
               <select
                 style={selectStyle}
                 value={pagination.limit}
-                onChange={(e) => onSetLimit(Number.parseInt(e.target.value, 10))}
+                onChange={(event) => onSetLimit(Number.parseInt(event.target.value, 10))}
               >
                 <option value={20}>20</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
               </select>
               <svg style={selectArrowStyle} width="10" height="6" viewBox="0 0 10 6" fill="none">
-                <path d="M1 1L5 5L9 1" stroke="var(--text-muted)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M1 1L5 5L9 1"
+                  stroke="var(--text-muted)"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </div>
           </div>

@@ -217,186 +217,200 @@ export default function RepositoriesPage() {
       <PageHeader
         title="Repositories"
         subtitle="Repos being monitored for deployments"
-        actions={(
-          <button
-            type="button"
-            className="settings-btn settings-btn-primary settings-toolbar-btn"
-            onClick={() => navigate("/onboarding/repos")}
-          >
-            <PlusIcon />
-            Add repositories
-          </button>
-        )}
       />
-      <SettingsLayout maxWidth="980px">
+      <SettingsLayout>
         <div className="settings-config-wrap">
-          <div className="settings-stat-row">
-            <div className="settings-stat-chip">
-              <span className="settings-stat-dot active" aria-hidden="true" />
-              <span className="settings-stat-number">{activeCount}</span>
-              <span className="settings-stat-label">Active</span>
-            </div>
-            <div className="settings-stat-chip">
-              <span className="settings-stat-dot inactive" aria-hidden="true" />
-              <span className="settings-stat-number">{inactiveCount}</span>
-              <span className="settings-stat-label">Inactive</span>
-            </div>
-          </div>
-
           <div className="settings-repo-toolbar">
-            <select className="settings-repo-sort" value={sortKey} onChange={(event) => setSortKey(event.target.value as SortKey)}>
-              <option value="name_asc">Name A-Z</option>
-              <option value="name_desc">Name Z-A</option>
-              <option value="deployments_desc">Most deployments</option>
-              <option value="synced_desc">Last synced</option>
-              <option value="recent">Recently added</option>
-            </select>
-
-            <div className="settings-repo-search-wrap">
-              <span className="settings-repo-search-icon"><SearchIcon /></span>
-              <input
-                className="settings-repo-search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search repositories..."
-              />
+            <div className="settings-stat-row settings-repo-stats">
+              <div className="settings-stat-chip">
+                <span className="settings-stat-dot active" aria-hidden="true" />
+                <span className="settings-stat-number">{activeCount}</span>
+                <span className="settings-stat-label">Active</span>
+              </div>
+              <div className="settings-stat-chip">
+                <span className="settings-stat-dot inactive" aria-hidden="true" />
+                <span className="settings-stat-number">{inactiveCount}</span>
+                <span className="settings-stat-label">Inactive</span>
+              </div>
             </div>
 
-            <div className="settings-filter-tabs" role="tablist" aria-label="Repository filter">
-              {(["all", "active", "inactive"] as FilterKey[]).map((filter) => (
-                <button
-                  key={filter}
-                  type="button"
-                  className={`settings-filter-tab ${filterKey === filter ? "active" : ""}`}
-                  onClick={() => setFilterKey(filter)}
-                >
-                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
-                </button>
-              ))}
+            <div className="settings-repo-toolbar-center">
+              <select className="settings-repo-sort" value={sortKey} onChange={(event) => setSortKey(event.target.value as SortKey)}>
+                <option value="name_asc">Name A-Z</option>
+                <option value="name_desc">Name Z-A</option>
+                <option value="deployments_desc">Most deployments</option>
+                <option value="synced_desc">Last synced</option>
+                <option value="recent">Recently added</option>
+              </select>
+
+              <div className="settings-repo-search-wrap">
+                <span className="settings-repo-search-icon"><SearchIcon /></span>
+                <input
+                  className="settings-repo-search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Search repositories..."
+                />
+              </div>
+
+              <div className="settings-filter-tabs" role="tablist" aria-label="Repository filter">
+                {(["all", "active", "inactive"] as FilterKey[]).map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    className={`settings-filter-tab ${filterKey === filter ? "active" : ""}`}
+                    onClick={() => setFilterKey(filter)}
+                  >
+                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            <button
+              type="button"
+              className="settings-btn settings-btn-primary settings-toolbar-btn"
+              onClick={() => navigate("/onboarding/repos")}
+            >
+              <PlusIcon />
+              Add repositories
+            </button>
           </div>
 
-          {selectedIds.length > 0 ? (
-            <div className="settings-bulk-bar">
-              <span>{selectedIds.length} selected</span>
-              <div className="settings-bulk-actions">
-                <button type="button" className="settings-btn settings-btn-secondary" onClick={() => navigate("/onboarding/repos")}>Enable all</button>
-                <button type="button" className="settings-btn settings-btn-danger" onClick={() => setConfirmBulkDisable(true)}>Disable all</button>
-                <button type="button" className="settings-bulk-clear" onClick={() => setSelectedIds([])}>Clear selection</button>
+          <section className="settings-list-shell settings-repo-table-shell">
+            <div className="settings-table-scroll">
+              <div className="settings-repo-table-header">
+                <span className="settings-col-header" />
+                <span className="settings-col-header" />
+                <span className="settings-col-header">Repository</span>
+                <span className="settings-col-header">Visibility</span>
+                <span className="settings-col-header">Branch</span>
+                <span className="settings-col-header">Last synced</span>
+                <span className="settings-col-header">Deploys</span>
+                <span className="settings-col-header">Webhook</span>
+                <span className="settings-col-header" />
               </div>
-            </div>
-          ) : null}
 
-          <section className="settings-list-shell">
-            {filteredRepos.length === 0 ? (
-              <div className="settings-empty-block">
-                <RepoIcon />
-                <h3>No repositories tracked</h3>
-                <p>Add repositories to start monitoring deployments</p>
-                <button
-                  type="button"
-                  className="settings-btn settings-btn-primary"
-                  onClick={() => navigate("/onboarding/repos")}
-                >
-                  <PlusIcon />
-                  Add repositories
-                </button>
-              </div>
-            ) : (
-              filteredRepos.map((repo) => {
-                const stats = repoStats[repo.id];
-                const hasDeployments = (stats?.total_deployments ?? 0) > 0;
-                const status = statusClass(stats?.last_deployment_status ?? null);
+              {filteredRepos.length === 0 ? (
+                <div className="settings-empty-block">
+                  <RepoIcon />
+                  <h3>No repositories tracked</h3>
+                  <p>Add repositories to start monitoring deployments</p>
+                  <button
+                    type="button"
+                    className="settings-btn settings-btn-primary"
+                    onClick={() => navigate("/onboarding/repos")}
+                  >
+                    <PlusIcon />
+                    Add repositories
+                  </button>
+                </div>
+              ) : (
+                filteredRepos.map((repo) => {
+                  const stats = repoStats[repo.id];
+                  const status = statusClass(stats?.last_deployment_status ?? null);
 
-                return (
-                  <div key={repo.id} className="settings-row settings-repo-row">
-                    <input
-                      type="checkbox"
-                      className="settings-row-checkbox"
-                      checked={selectedIds.includes(repo.id)}
-                      onChange={() => toggleSelection(repo.id)}
-                    />
+                  return (
+                    <div key={repo.id} className="settings-row settings-repo-row">
+                      <input
+                        type="checkbox"
+                        className="settings-row-checkbox"
+                        checked={selectedIds.includes(repo.id)}
+                        onChange={() => toggleSelection(repo.id)}
+                      />
 
-                    <div className="settings-icon-box">
-                      <RepoIcon />
-                    </div>
-
-                    <div className="settings-row-main">
-                      <div className="settings-row-title">{repo.full_name ?? `${repo.owner ?? "unknown"}/${repo.name ?? "repo"}`}</div>
-                      <div className="settings-row-meta">
-                        <span className={`settings-tag ${repo.private ? "base" : "public"}`}>
-                          {repo.private ? "Private" : "Public"}
-                        </span>
-                        <span className="settings-tag branch">
-                          <BranchIcon />
-                          {repo.default_branch}
-                        </span>
-                        <span className="settings-meta-text">Synced {formatRelativeTime(repo.updated_at ?? repo.added_at ?? repo.created_at)}</span>
+                      <div className="settings-icon-box settings-repo-icon-cell">
+                        <RepoIcon />
                       </div>
-                      <div className="settings-row-meta settings-row-meta-3">
-                        <span className="settings-tag base">{stats?.total_deployments ?? 0} deploys</span>
-                        {hasDeployments ? (
-                          <span className="settings-meta-with-dot">
-                            <span className={`settings-status-dot ${status}`} />
-                            Last: {formatRelativeTime(stats?.last_deployment_at ?? null)}
-                          </span>
-                        ) : (
-                          <span className="settings-meta-text">No deployments yet</span>
-                        )}
-                      </div>
-                    </div>
 
-                    <Tooltip content={repo.webhook_secret_exists ? "Webhook secret configured" : "Webhook secret missing"}>
-                      <span className={`settings-webhook-badge ${repo.webhook_secret_exists ? "ok" : "warn"}`}>
-                        {repo.webhook_secret_exists ? "Webhook set" : "No webhook"}
+                      <div className="settings-row-main settings-repo-main-cell">
+                        <div className="settings-row-title">{repo.full_name ?? `${repo.owner ?? "unknown"}/${repo.name ?? "repo"}`}</div>
+                        <div className="settings-meta-text settings-repo-subline">
+                          {stats?.total_deployments ?? 0} deploys · Last: {formatRelativeTime(stats?.last_deployment_at ?? null)}
+                        </div>
+                      </div>
+
+                      <span className={`settings-tag ${repo.private ? "base" : "public"}`}>
+                        {repo.private ? "Private" : "Public"}
                       </span>
-                    </Tooltip>
 
-                    <Tooltip content="View webhook secret">
-                      <button
-                        type="button"
-                        className="settings-icon-btn"
-                        onClick={() => {
-                          setSecretModalRepo(repo);
-                          setSecretVisible(false);
-                          setSecretValue("");
-                        }}
-                      >
-                        <EyeIcon />
-                      </button>
-                    </Tooltip>
+                      <span className="settings-tag branch settings-repo-branch-cell">
+                        <BranchIcon />
+                        {repo.default_branch}
+                      </span>
 
-                    <Tooltip content="Sync repository">
-                      <button
-                        type="button"
-                        className="settings-icon-btn"
-                        onClick={() => void syncRepo(repo.id)}
-                        disabled={Boolean(syncingByRepo[repo.id])}
-                      >
-                        <RefreshIcon spinning={Boolean(syncingByRepo[repo.id])} />
-                      </button>
-                    </Tooltip>
+                      <span className="settings-meta-text">{formatRelativeTime(repo.updated_at ?? repo.added_at ?? repo.created_at)}</span>
 
-                    <button
-                      type="button"
-                      className={`settings-toggle ${repo.is_active ? "active" : "inactive"}`}
-                      role="switch"
-                      aria-checked={repo.is_active}
-                      aria-label={repo.is_active ? `Disable ${repo.name ?? "repository"}` : `Enable ${repo.name ?? "repository"}`}
-                      onClick={() => {
-                        if (repo.is_active) {
-                          setConfirmRepoId(repo.id);
-                        } else {
-                          navigate("/onboarding/repos");
-                        }
-                      }}
-                    >
-                      <span className="settings-toggle-thumb" />
-                    </button>
-                  </div>
-                );
-              })
-            )}
+                      <span className="settings-repo-deploy-cell">
+                        <span className="settings-repo-deploy-count">{stats?.total_deployments ?? 0} deploys</span>
+                        <span className={`settings-status-dot ${status}`} />
+                      </span>
+
+                      <Tooltip content={repo.webhook_secret_exists ? "Webhook secret configured" : "Webhook secret missing"}>
+                        <span className={`settings-webhook-badge ${repo.webhook_secret_exists ? "ok" : "warn"}`}>
+                          {repo.webhook_secret_exists ? "Set" : "None"}
+                        </span>
+                      </Tooltip>
+
+                      <div className="settings-repo-actions-cell">
+                        <Tooltip content="View webhook secret">
+                          <button
+                            type="button"
+                            className="settings-icon-btn"
+                            onClick={() => {
+                              setSecretModalRepo(repo);
+                              setSecretVisible(false);
+                              setSecretValue("");
+                            }}
+                          >
+                            <EyeIcon />
+                          </button>
+                        </Tooltip>
+
+                        <Tooltip content="Sync repository">
+                          <button
+                            type="button"
+                            className="settings-icon-btn"
+                            onClick={() => void syncRepo(repo.id)}
+                            disabled={Boolean(syncingByRepo[repo.id])}
+                          >
+                            <RefreshIcon spinning={Boolean(syncingByRepo[repo.id])} />
+                          </button>
+                        </Tooltip>
+
+                        <button
+                          type="button"
+                          className={`settings-toggle ${repo.is_active ? "active" : "inactive"}`}
+                          role="switch"
+                          aria-checked={repo.is_active}
+                          aria-label={repo.is_active ? `Disable ${repo.name ?? "repository"}` : `Enable ${repo.name ?? "repository"}`}
+                          onClick={() => {
+                            if (repo.is_active) {
+                              setConfirmRepoId(repo.id);
+                            } else {
+                              navigate("/onboarding/repos");
+                            }
+                          }}
+                        >
+                          <span className="settings-toggle-thumb" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {selectedIds.length > 0 ? (
+              <div className="settings-bulk-bar settings-bulk-bar-bottom">
+                <span>{selectedIds.length} selected</span>
+                <div className="settings-bulk-actions">
+                  <button type="button" className="settings-btn settings-btn-secondary" onClick={() => navigate("/onboarding/repos")}>Enable all</button>
+                  <button type="button" className="settings-btn settings-btn-danger" onClick={() => setConfirmBulkDisable(true)}>Disable all</button>
+                  <button type="button" className="settings-bulk-clear" onClick={() => setSelectedIds([])}>Clear</button>
+                </div>
+              </div>
+            ) : null}
           </section>
         </div>
 

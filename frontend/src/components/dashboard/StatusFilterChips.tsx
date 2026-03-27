@@ -32,7 +32,7 @@ export default function StatusFilterChips({ stats }: Props) {
     display: "flex",
     alignItems: "center",
     gap: "6px",
-    marginBottom: "12px",
+    marginBottom: 0,
     flexWrap: "wrap",
   };
 

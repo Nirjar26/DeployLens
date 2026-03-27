@@ -233,8 +233,8 @@ export default function EnvironmentColumn({ item, onOpen, onViewAll }: Props) {
   };
 
   const gradeMeta = (() => {
-    const statuses = item.recent_statuses ?? [];
-    if (statuses.length === 0) {
+    const deployments = item.recent_deployments ?? [];
+    if (deployments.length === 0) {
       return {
         grade: "—",
         color: "var(--text-muted)",
@@ -244,8 +244,8 @@ export default function EnvironmentColumn({ item, onOpen, onViewAll }: Props) {
       };
     }
 
-    const successCount = statuses.filter((status) => status === "success").length;
-    const rate = (successCount / statuses.length) * 100;
+    const successCount = deployments.filter((d) => d.unified_status === "success").length;
+    const rate = (successCount / deployments.length) * 100;
 
     if (rate >= 90) {
       return {
@@ -253,7 +253,7 @@ export default function EnvironmentColumn({ item, onOpen, onViewAll }: Props) {
         color: "var(--status-success-text)",
         background: "var(--status-success-bg)",
         border: "var(--status-success-border)",
-        sample: statuses.length,
+        sample: deployments.length,
       };
     }
 
@@ -263,7 +263,7 @@ export default function EnvironmentColumn({ item, onOpen, onViewAll }: Props) {
         color: "var(--status-success-text)",
         background: "var(--status-success-bg)",
         border: "var(--status-success-border)",
-        sample: statuses.length,
+        sample: deployments.length,
       };
     }
 
@@ -273,7 +273,7 @@ export default function EnvironmentColumn({ item, onOpen, onViewAll }: Props) {
         color: "var(--status-warning-text)",
         background: "var(--status-warning-bg)",
         border: "var(--status-warning-border)",
-        sample: statuses.length,
+        sample: deployments.length,
       };
     }
 
@@ -282,7 +282,7 @@ export default function EnvironmentColumn({ item, onOpen, onViewAll }: Props) {
       color: "var(--status-failed-text)",
       background: "var(--status-failed-bg)",
       border: "var(--status-failed-border)",
-      sample: statuses.length,
+      sample: deployments.length,
     };
   })();
 

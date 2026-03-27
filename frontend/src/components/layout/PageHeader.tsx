@@ -9,7 +9,9 @@ interface PageHeaderProps {
 export default function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
   return (
     <div style={{
-      padding: "28px 32px 20px 32px",
+      width: "100%",
+      boxSizing: "border-box",
+      padding: "24px 32px 16px 32px",
       borderBottom: "1px solid var(--border-light)",
       background: "var(--bg-surface)",
       display: "flex",
@@ -40,7 +42,7 @@ export default function PageHeader({ title, subtitle, actions }: PageHeaderProps
           </p>
         )}
       </div>
-      {actions && <div>{actions}</div>}
+      {actions && <div style={{ marginLeft: "auto" }}>{actions}</div>}
     </div>
   );
 }

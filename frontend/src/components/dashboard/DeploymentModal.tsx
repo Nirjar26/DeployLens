@@ -1,21 +1,12 @@
 import { CSSProperties } from "react";
-import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Loader2, MinusCircle, RotateCcw, X, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, ExternalLink, Loader2, MinusCircle, RotateCcw, X, XCircle, Info, SkipForward, Zap } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { deployments, github } from "../../lib/api";
 import { unwatchDeployment, watchDeployment } from "../../lib/socket";
 import { useAwsStore } from "../../store/awsStore";
 import { DeploymentDetail } from "../../store/deploymentStore";
 import StatusBadge from "./StatusBadge";
-
-function formatDuration(seconds: number | null): string {
-  if (seconds === null || seconds < 0) return "—";
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  if (h > 0) return `${h}h ${m}m`;
-  if (m > 0) return `${m}m ${s}s`;
-  return `${s}s`;
-}
+import { formatDuration, formatElapsed } from "../../lib/formatters";
 
 function formatMs(ms: number | null): string {
   if (ms === null) return "—";
@@ -624,12 +615,17 @@ export default function DeploymentModal({ open, detail, isLoading, onClose, onOp
                     <span style={modalKvValueStyle}>{detail.finished_at ? new Date(detail.finished_at).toLocaleString() : "—"}</span>
                   </div>
                   <div style={modalKvStyle}>
-                    <span style={modalKvLabelStyle}>Duration</span>
-                    <span style={modalKvValueStyle}>
-                      {detail.duration_seconds !== null
-                        ? formatDuration(detail.duration_seconds)
-                        : detail.started_at && detail.unified_status === "running"
-                          ? formatDuration(Math.max(0, Math.floor((now - new Date(detail.started_at).getTime()) / 1000)))
+                    <span style={modalKvLabelStyle}>
+                      {detail.unified_status === "running" ? "Running for" : "Duration"}
+                    </span>
+                    <span style={{
+                      ...modalKvValueStyle,
+                      color: detail.unified_status === "running" ? "var(--status-running-text)" : "var(--text-primary)",
+                    }}>
+                      {detail.unified_status === "running" && detail.started_at
+                        ? formatElapsed(detail.started_at).replace(" ago", "")
+                        : detail.duration_seconds !== null
+                          ? formatDuration(detail.duration_seconds)
                           : "—"}
                     </span>
                   </div>
