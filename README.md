@@ -308,6 +308,7 @@ This project is actively being built. Contributions are welcome.
 ## Security
 
 Credentials stored in DeployLens are encrypted with AES-256-GCM before being written to the database. The encryption key never leaves your server. If you discover a security vulnerability, please reach out directly rather than opening a public issue.
+**2FA will be added soon in the accounts.**
 
 ---
 
@@ -319,7 +320,7 @@ MIT — see [LICENSE](LICENSE) for details.
 
 ## Author
 
-Built by **Nirjxr**
+Built by **Nirjar Goswami**
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-connect-blue)](https://linkedin.com/in/your-profile)
 [![GitHub](https://img.shields.io/badge/GitHub-follow-black)](https://github.com/your-username)
