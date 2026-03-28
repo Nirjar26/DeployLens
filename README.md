@@ -1,6 +1,6 @@
 # DeployLens
 
-> A self-hosted CI/CD deployment visibility platform that unifies GitHub Actions and AWS CodeDeploy into a single real-time dashboard(still in the dev phase, its early access).
+> A self-hosted CI/CD deployment visibility platform that unifies GitHub Actions and AWS CodeDeploy into a single real-time dashboard.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Node](https://img.shields.io/badge/node-20%2B-green)
