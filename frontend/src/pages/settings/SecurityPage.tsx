@@ -250,7 +250,7 @@ export default function SecurityPage() {
   return (
     <>
       <PageHeader title="Security" subtitle="Password and account safety controls" />
-      <SettingsLayout maxWidth="720px">
+      <SettingsLayout>
         <div className="settings-security-wrap">
           <section className="settings-card">
             <header className="settings-card-header">
