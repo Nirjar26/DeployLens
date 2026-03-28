@@ -296,7 +296,7 @@ export default function DeploymentRow({
         </td>
       ) : null}
 
-      <td style={cellBaseStyle}>
+      <td style={{ ...cellBaseStyle, textAlign: "center" }}>
         <StatusBadge status={deployment.unified_status} />
       </td>
 
@@ -433,7 +433,7 @@ export default function DeploymentRow({
         )}
       </td>
 
-      <td style={cellBaseStyle} title={new Date(deployment.created_at).toLocaleString()}>
+      <td style={{ ...cellBaseStyle, textAlign: "center" }} title={new Date(deployment.created_at).toLocaleString()}>
         <div style={{ display: "grid", gap: "2px", justifyItems: "center" }}>
           <span style={{ fontSize: "12px", fontWeight: 500, color: "var(--text-primary)", lineHeight: 1.2 }}>
             {formatRelative(deployment.created_at)}

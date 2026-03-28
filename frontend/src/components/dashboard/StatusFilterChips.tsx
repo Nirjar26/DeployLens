@@ -31,8 +31,8 @@ export default function StatusFilterChips({ stats }: Props) {
   const containerStyle: CSSProperties = {
     display: "flex",
     alignItems: "center",
-    gap: "6px",
-    marginBottom: 0,
+    gap: "4px",
+    marginBottom: "4px",
     flexWrap: "wrap",
   };
 
@@ -59,6 +59,15 @@ export default function StatusFilterChips({ stats }: Props) {
     }
 
     // Active styles
+    if (chip === "all") {
+      return {
+        ...baseStyle,
+        background: "#ffffff",
+        color: "#000000",
+        borderColor: "var(--border-light)",
+      };
+    }
+
     switch (chip) {
       case "pending":
         return {

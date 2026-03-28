@@ -1468,7 +1468,7 @@ input, select, textarea {
    KEEP: DRAWER, SETTINGS, EMPTY STATE (legacy)
    ═══════════════════════════════════════ */
 .drawer-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.4); z-index: 60; display: flex; justify-content: flex-end }
-.deployment-drawer { width: min(520px,100vw); background: #fff; height: 100vh; display: grid; grid-template-rows: auto 1fr }
+.deployment-drawer { width: min(520px,100vw); background: #fff; height: 100vh; display: grid; grid-template-rows: auto auto 1fr }
 .drawer-header { border-bottom: 1px solid #e5e7eb; padding: 0.8rem; display: grid; gap: 0.45rem }
 .drawer-header h3, .drawer-header p { margin: 0 }
 .drawer-body { overflow: auto; padding: 0.8rem; display: grid; gap: 0.75rem }

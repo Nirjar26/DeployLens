@@ -261,6 +261,7 @@ export default function PipelineTable({
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
+    justifyContent: "center",
     gap: "4px",
   };
 
@@ -362,6 +363,7 @@ export default function PipelineTable({
             <th
               style={{
                 ...sortableHeaderStyle,
+                textAlign: "center",
                 color:
                   hoveredHeader === "unified_status" || sortBy === "unified_status"
                     ? "var(--text-secondary)"
@@ -389,6 +391,7 @@ export default function PipelineTable({
             <th
               style={{
                 ...sortableHeaderStyle,
+                textAlign: "center",
                 color:
                   hoveredHeader === "created_at" || sortBy === "created_at"
                     ? "var(--text-secondary)"
