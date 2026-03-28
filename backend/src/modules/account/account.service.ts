@@ -170,3 +170,52 @@ export async function deleteAccount(userId: string, password: string, req?: Requ
 
   return { success: true };
 }
+
+export async function getActiveSessions(userId: string, currentJti?: string | null) {
+  const sessions = await prisma.refreshToken.findMany({
+    where: {
+      user_id: userId,
+      revoked: false,
+      expires_at: {
+        gt: new Date(),
+      },
+    },
+    orderBy: {
+      created_at: "desc",
+    },
+    take: 10,
+    select: {
+      id: true,
+      token_jti: true,
+      created_at: true,
+      updated_at: true,
+    },
+  } as any);
+
+  return sessions.map((session: any) => ({
+    id: session.id,
+    created_at: session.created_at,
+    last_used: session.updated_at ?? session.created_at,
+    is_current: Boolean(currentJti && session.token_jti === currentJti),
+  }));
+}
+
+export async function revokeSession(userId: string, sessionId: string) {
+  const result = await prisma.refreshToken.updateMany({
+    where: {
+      id: sessionId,
+      user_id: userId,
+      revoked: false,
+    },
+    data: {
+      revoked: true,
+      revoked_at: new Date(),
+    },
+  });
+
+  if (result.count === 0) {
+    throw new Error("SESSION_NOT_FOUND");
+  }
+
+  return { success: true };
+}

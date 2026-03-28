@@ -98,6 +98,13 @@ export type AuditLogEntry = {
   created_at: string;
 };
 
+export type AccountSession = {
+  id: string;
+  created_at: string;
+  last_used: string;
+  is_current: boolean;
+};
+
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
 const api = axios.create({
@@ -424,6 +431,14 @@ export const account = {
   },
   async deleteAccount(password: string) {
     const response = await api.delete("/api/account", { data: { password } });
+    return response.data?.data as { success: boolean };
+  },
+  async getSessions() {
+    const response = await api.get("/api/account/sessions");
+    return (response.data?.data ?? []) as AccountSession[];
+  },
+  async revokeSession(sessionId: string) {
+    const response = await api.delete(`/api/account/sessions/${sessionId}`);
     return response.data?.data as { success: boolean };
   },
 };

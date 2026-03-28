@@ -3603,6 +3603,640 @@ input, select, textarea {
   to { opacity: 1; transform: translateY(0); }
 }
 
+.settings-btn-md {
+  min-height: 36px;
+  padding: 0 20px;
+  font-size: 13px;
+}
+
+.settings-form-field {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-form-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1px;
+}
+
+.settings-field-control-wrap {
+  position: relative;
+}
+
+.settings-field-control-wrap.has-adornment .settings-field-input {
+  padding-right: 40px;
+}
+
+.settings-field-input {
+  height: 38px;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+  box-sizing: border-box;
+}
+
+.settings-field-input::placeholder {
+  color: var(--text-muted);
+}
+
+.settings-field-input:focus {
+  border-color: var(--accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--focus-ring-accent);
+}
+
+.settings-field-input:disabled,
+.settings-field-input[readonly] {
+  background: var(--bg-sunken);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  border-color: var(--border-light);
+}
+
+.settings-field-input.settings-field-input-error,
+.settings-field-input-error {
+  border-color: var(--status-failed-text);
+  box-shadow: 0 0 0 3px var(--focus-ring-danger);
+}
+
+.settings-field-input.settings-field-input-success,
+.settings-field-input-success {
+  border-color: var(--status-success-text);
+  box-shadow: 0 0 0 3px var(--focus-ring-success);
+}
+
+.settings-field-right-adornment {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.settings-password-input-wrap {
+  position: relative;
+}
+
+.settings-password-input-wrap .settings-field-input {
+  padding-right: 40px;
+}
+
+.settings-password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.settings-password-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.settings-field-helper {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.settings-field-message-error,
+.settings-field-message-success {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.settings-field-message-error {
+  color: var(--status-failed-text);
+}
+
+.settings-field-message-success {
+  color: var(--status-success-text);
+}
+
+.settings-profile-wrap {
+  padding: 24px 0;
+  display: grid;
+  gap: 8px;
+}
+
+.settings-profile-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+  align-items: start;
+}
+
+.settings-profile-main-col {
+  max-width: 560px;
+  width: 100%;
+}
+
+.settings-profile-side-col {
+  width: 280px;
+  flex-shrink: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.settings-profile-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 20px;
+}
+
+.settings-profile-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  border: 3px solid var(--bg-surface);
+  box-shadow: 0 0 0 2px var(--accent-border);
+  flex-shrink: 0;
+}
+
+.settings-profile-avatar-meta {
+  min-width: 0;
+}
+
+.settings-profile-avatar-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.settings-profile-avatar-email {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.settings-profile-avatar-swatches {
+  display: flex;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.settings-profile-avatar-swatch {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.settings-profile-form-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-profile-actions {
+  margin-top: 6px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.settings-profile-user-id-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-profile-copy-btn {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.settings-profile-copy-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.settings-linked-body {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.settings-linked-row {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--bg-sunken);
+}
+
+.settings-linked-row.no-border {
+  border-bottom: none;
+}
+
+.settings-linked-icon-wrap {
+  color: var(--text-muted);
+  width: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-linked-icon-wrap.aws {
+  color: var(--aws-icon);
+}
+
+.settings-linked-meta {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.settings-linked-connect-btn {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.settings-danger-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--status-failed-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.settings-danger-card-header {
+  background: var(--status-failed-bg);
+  border-bottom: 1px solid var(--status-failed-border);
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--status-failed-text);
+}
+
+.settings-danger-card-header h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-danger-card-body {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.settings-danger-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-danger-description {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 560px;
+}
+
+.settings-danger-delete-btn {
+  height: 36px;
+  padding: 0 16px;
+  background: var(--status-failed-bg);
+  border: 1px solid var(--status-failed-border);
+  color: var(--status-failed-text);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.settings-danger-delete-btn:hover:not(:disabled) {
+  background: var(--status-failed-text);
+  color: var(--text-on-accent);
+}
+
+.settings-danger-delete-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.settings-security-wrap {
+  padding: 24px 0;
+  display: grid;
+  gap: 16px;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.settings-security-form-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-password-last-changed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 12px;
+  background: var(--bg-sunken);
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.settings-password-last-changed-row svg {
+  color: var(--status-success-text);
+}
+
+.settings-password-strength-wrap {
+  display: grid;
+  gap: 6px;
+  margin-top: -4px;
+  animation: slideDown var(--transition-base);
+}
+
+.settings-password-strength-row {
+  display: flex;
+  align-items: center;
+}
+
+.settings-password-strength-segments {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+}
+
+.settings-strength-segment {
+  height: 3px;
+  border-radius: 2px;
+  flex: 1;
+  background: var(--border-light);
+}
+
+.settings-strength-segment.active.weak {
+  background: var(--password-strength-weak);
+}
+
+.settings-strength-segment.active.fair {
+  background: var(--password-strength-fair);
+}
+
+.settings-strength-segment.active.good {
+  background: var(--password-strength-good);
+}
+
+.settings-strength-segment.active.strong {
+  background: var(--password-strength-strong);
+}
+
+.settings-password-strength-label {
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.settings-password-strength-label.weak {
+  color: var(--status-failed-text);
+}
+
+.settings-password-strength-label.fair {
+  color: var(--password-strength-fair-text);
+}
+
+.settings-password-strength-label.good,
+.settings-password-strength-label.strong {
+  color: var(--status-success-text);
+}
+
+.settings-password-requirements-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-password-chip {
+  height: 20px;
+  padding: 0 7px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-light);
+  background: var(--bg-sunken);
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.settings-password-chip.met {
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+  border-color: var(--status-success-border);
+}
+
+.settings-session-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bg-sunken);
+}
+
+.settings-session-row.no-border {
+  border-bottom: none;
+}
+
+.settings-session-icon-box {
+  width: 36px;
+  height: 36px;
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.settings-session-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-session-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-session-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-session-current-pill {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  padding: 1px 6px;
+}
+
+.settings-session-subtext {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.settings-session-current-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.settings-session-revoke-btn {
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--status-failed-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--status-failed-text);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-session-revoke-btn:hover:not(:disabled) {
+  background: var(--status-failed-bg);
+}
+
+.settings-session-revoke-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.settings-sessions-revoke-all-btn {
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+}
+
+.settings-sessions-empty-placeholder {
+  background: var(--bg-sunken);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.settings-2fa-info-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.settings-2fa-icon-box {
+  width: 40px;
+  height: 40px;
+  background: var(--bg-sunken);
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.settings-2fa-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.settings-2fa-description {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.settings-2fa-action-row {
+  margin-top: 14px;
+}
+
+@media (max-width: 960px) {
+  .settings-profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-profile-main-col,
+  .settings-profile-side-col {
+    max-width: none;
+    width: 100%;
+  }
+}
+
+@media (max-width: 680px) {
+  .settings-profile-avatar-row {
+    align-items: flex-start;
+  }
+
+  .settings-danger-card-body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 /* ═══════════════════════════════════════
    RESPONSIVE
    ═══════════════════════════════════════ */

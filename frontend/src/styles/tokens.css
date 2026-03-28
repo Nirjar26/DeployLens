@@ -19,6 +19,9 @@
   --accent-light:     #eef2ff;
   --accent-border:    #c7d2fe;
   --accent-hover:     #4338ca;
+  --focus-ring-accent: rgba(79, 70, 229, 0.08);
+  --focus-ring-danger: rgba(220, 38, 38, 0.08);
+  --focus-ring-success: rgba(22, 163, 74, 0.08);
 
   /* STATUS */
   --status-success-bg:   #f0fdf4;
@@ -48,6 +51,28 @@
   --status-offhours-bg:     #f5f3ff;
   --status-offhours-text:   #7c3aed;
   --status-offhours-border: #ddd6fe;
+
+  /* PROFILE AVATAR PRESETS */
+  --avatar-preset-1-bg: #ede9fe;
+  --avatar-preset-1-text: #7c3aed;
+  --avatar-preset-2-bg: #dbeafe;
+  --avatar-preset-2-text: #1d4ed8;
+  --avatar-preset-3-bg: #dcfce7;
+  --avatar-preset-3-text: #15803d;
+  --avatar-preset-4-bg: #fef9c3;
+  --avatar-preset-4-text: #a16207;
+  --avatar-preset-5-bg: #ffe4e6;
+  --avatar-preset-5-text: #be123c;
+  --avatar-preset-6-bg: #f1f5f9;
+  --avatar-preset-6-text: #475569;
+
+  /* SECURITY COLORS */
+  --password-strength-weak: #ef4444;
+  --password-strength-fair: #f97316;
+  --password-strength-fair-text: #d97706;
+  --password-strength-good: #22c55e;
+  --password-strength-strong: #16a34a;
+  --aws-icon: #f97316;
 
   /* BORDERS */
   --border-light:     #e2e8f0;

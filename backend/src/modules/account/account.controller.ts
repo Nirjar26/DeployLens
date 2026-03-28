@@ -1,5 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import { z } from "zod";
+import {
+  isJsonWebTokenError,
+  isTokenExpiredError,
+  verifyRefreshToken,
+} from "../../utils/jwt";
 import { sendError, sendSuccess } from "../../utils/response";
 import * as accountService from "./account.service";
 
@@ -29,6 +34,10 @@ const passwordSchema = z.object({
 
 const deleteSchema = z.object({
   password: z.string().min(1),
+});
+
+const sessionParamsSchema = z.object({
+  id: z.string().min(1),
 });
 
 export async function updateProfile(req: Request, res: Response, next: NextFunction) {
@@ -94,6 +103,50 @@ export async function deleteAccount(req: Request, res: Response, next: NextFunct
   } catch (error) {
     if (error instanceof Error && error.message === "WRONG_PASSWORD") {
       return sendError(res, "WRONG_PASSWORD", "Password is incorrect", 400);
+    }
+
+    return next(error);
+  }
+}
+
+export async function getActiveSessions(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user?.id) {
+      throw new Error("Invalid credentials");
+    }
+
+    const refreshToken = req.cookies?.[REFRESH_COOKIE_NAME];
+    let currentJti: string | null = null;
+
+    if (typeof refreshToken === "string") {
+      try {
+        currentJti = verifyRefreshToken(refreshToken).jti;
+      } catch (error) {
+        if (!isJsonWebTokenError(error) && !isTokenExpiredError(error)) {
+          throw error;
+        }
+      }
+    }
+
+    const sessions = await accountService.getActiveSessions(req.user.id, currentJti);
+    return sendSuccess(res, sessions);
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function revokeSession(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user?.id) {
+      throw new Error("Invalid credentials");
+    }
+
+    const params = sessionParamsSchema.parse(req.params);
+    const result = await accountService.revokeSession(req.user.id, params.id);
+    return sendSuccess(res, result);
+  } catch (error) {
+    if (error instanceof Error && error.message === "SESSION_NOT_FOUND") {
+      return sendError(res, "SESSION_NOT_FOUND", "Session was not found", 404);
     }
 
     return next(error);
