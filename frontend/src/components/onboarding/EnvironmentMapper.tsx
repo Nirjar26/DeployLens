@@ -1,10 +1,9 @@
-import { Boxes, Check, RefreshCcw } from "lucide-react";
+import { AlertTriangle, Check, Loader2, RefreshCcw, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { aggregator } from "../../lib/api";
 import { useAuthStore } from "../../store/authStore";
 import { EnvironmentItem, useAwsStore } from "../../store/awsStore";
-import EnvironmentCard from "./EnvironmentCard";
 
 const COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6"];
 
@@ -22,7 +21,6 @@ export default function EnvironmentMapper({ onLoad }: Props) {
   const isLoadingApplications = useAwsStore((state) => state.isLoadingApplications);
   const isLoadingEnvironments = useAwsStore((state) => state.isLoadingEnvironments);
   const addEnvironment = useAwsStore((state) => state.addEnvironment);
-  const updateEnvironment = useAwsStore((state) => state.updateEnvironment);
   const removeEnvironment = useAwsStore((state) => state.removeEnvironment);
 
   const [isBootLoading, setIsBootLoading] = useState(true);
@@ -113,10 +111,6 @@ export default function EnvironmentMapper({ onLoad }: Props) {
     return !repositoryId || !appName || !groupName || !displayName.trim() || !colorTag;
   }, [appName, colorTag, displayName, groupName, repositoryId]);
 
-  async function handleUpdateEnvironment(id: string, payload: { display_name?: string; color_tag?: string }) {
-    await updateEnvironment(id, payload);
-  }
-
   async function handleDeleteEnvironment(id: string) {
     await removeEnvironment(id);
   }
@@ -139,7 +133,7 @@ export default function EnvironmentMapper({ onLoad }: Props) {
 
   if (isBootLoading || isLoadingApplications || isLoadingEnvironments) {
     return (
-      <section className="onboarding-card mapper-page">
+      <section className="mapper-page">
         <div className="repo-skeleton" />
         <div className="repo-skeleton" />
         <div className="repo-skeleton" />
@@ -149,13 +143,10 @@ export default function EnvironmentMapper({ onLoad }: Props) {
 
   return (
     <section className="mapper-page">
-      <header className="repos-header">
-        <h1>Map your environments</h1>
-        <p>Link CodeDeploy deployment groups to friendly environment names</p>
-      </header>
-
       <div className="env-form-card">
-        <div className="env-form-grid">
+        <h2 className="env-form-title">Add environment</h2>
+
+        <div className="env-form-grid-top">
           <select className="auth-input" value={repositoryId} onChange={(event) => setRepositoryId(event.target.value)}>
             <option value="">Repository</option>
             {trackedRepos.map((repo) => (
@@ -164,7 +155,7 @@ export default function EnvironmentMapper({ onLoad }: Props) {
           </select>
 
           <select className="auth-input" value={appName} onChange={(event) => setAppName(event.target.value)}>
-            <option value="">CodeDeploy App</option>
+            <option value="">CodeDeploy app</option>
             {applications.map((app) => (
               <option key={app} value={app}>{app}</option>
             ))}
@@ -178,15 +169,17 @@ export default function EnvironmentMapper({ onLoad }: Props) {
               <option key={group} value={group}>{group}</option>
             ))}
           </select>
+        </div>
 
+        <div className="env-form-grid-bottom">
           <input
-            className="auth-input"
+            className="auth-input env-name-input"
             placeholder="production"
             value={displayName}
             onChange={(event) => setDisplayName(event.target.value)}
           />
 
-          <div className="color-swatch-group">
+          <div className="color-swatch-group" role="radiogroup" aria-label="Environment color">
             {COLORS.map((swatch) => (
               <button
                 key={swatch}
@@ -194,46 +187,73 @@ export default function EnvironmentMapper({ onLoad }: Props) {
                 className={`color-swatch ${colorTag === swatch ? "color-swatch-active" : ""}`}
                 style={{ backgroundColor: swatch }}
                 onClick={() => setColorTag(swatch)}
+                aria-pressed={colorTag === swatch}
               >
                 {colorTag === swatch ? <Check size={12} /> : null}
               </button>
             ))}
           </div>
 
-          <button type="button" className="auth-btn auth-btn-primary" disabled={addDisabled} onClick={handleAdd}>Add</button>
+          <button type="button" className="onboarding-primary-btn onboarding-add-btn" disabled={addDisabled} onClick={handleAdd}>Add</button>
         </div>
 
-        {applications.length === 0 ? <p className="helper-copy helper-left">No CodeDeploy apps found in your AWS account</p> : null}
+        {applications.length === 0 ? (
+          <div className="onboarding-warning-banner" role="status">
+            <AlertTriangle size={14} />
+            <span>No CodeDeploy apps found in your AWS account</span>
+          </div>
+        ) : null}
         {groupError ? <p className="field-error">{groupError}</p> : null}
       </div>
+
+      <h3 className="env-list-title">Mapped environments ({environments.length})</h3>
 
       <div className="env-list-wrap">
         {environments.length === 0 ? (
           <div className="empty-env-state">
-            <Boxes size={22} />
-            <h3>No environments mapped yet</h3>
-            <p>Add your first one using the form above</p>
+            Add your first environment using the form above
           </div>
         ) : (
-          environments.map((env: EnvironmentItem) => (
-            <EnvironmentCard
-              key={env.id}
-              environment={env}
-              onUpdate={handleUpdateEnvironment}
-              onDelete={handleDeleteEnvironment}
-            />
-          ))
+          environments.map((env: EnvironmentItem) => {
+            return (
+              <div key={env.id} className="env-row">
+                <div className="env-color-swatch" style={{ color: env.color_tag }}>
+                  <span className="env-color-swatch-dot" style={{ backgroundColor: env.color_tag }} />
+                </div>
+
+                <div className="env-center">
+                  <div className="env-row-main">
+                    <span className="env-name">{env.display_name}</span>
+                    <span className="env-repo-chip">{env.repository_full_name}</span>
+                    <span className="env-arrow">→</span>
+                    <span className="env-path truncate" title={`${env.codedeploy_app} / ${env.codedeploy_group}`}>
+                      {env.codedeploy_app} / {env.codedeploy_group}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="env-delete-btn"
+                  onClick={() => void handleDeleteEnvironment(env.id)}
+                  aria-label={`Delete ${env.display_name}`}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            );
+          })
         )}
       </div>
 
       <div className="repos-sticky-bar env-sticky">
-        <span>{environments.length} environment(s) mapped</span>
+        <span className={`repos-sticky-count ${environments.length === 0 ? "is-empty" : ""}`}>{environments.length} environment(s) mapped</span>
         <div className="env-sticky-actions">
-          <button type="button" className="auth-btn auth-btn-secondary" onClick={handleSyncNow} disabled={isSyncing}>
-            <RefreshCcw size={14} className={isSyncing ? "spin-inline" : ""} />
+          <button type="button" className="onboarding-secondary-btn" onClick={handleSyncNow} disabled={isSyncing}>
+            {isSyncing ? <Loader2 size={14} className="spin-inline" /> : <RefreshCcw size={14} />}
             {isSyncing ? "Syncing..." : "Sync now"}
           </button>
-          <button type="button" className="auth-btn auth-btn-primary" onClick={() => navigate("/dashboard")}>Go to Dashboard →</button>
+          <button type="button" className="onboarding-primary-btn onboarding-primary-btn-compact" onClick={() => navigate("/dashboard")}>Go to Dashboard →</button>
         </div>
       </div>
 

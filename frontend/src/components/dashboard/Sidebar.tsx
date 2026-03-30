@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
+import { useAwsStore } from "../../store/awsStore";
 import auditIcon from "../../assets/icons/custom/audit-svgrepo-com.svg";
 import connectIcon from "../../assets/icons/custom/connect-svgrepo-com.svg";
 import deployLensLogo from "../../assets/icons/custom/DeployLens.png";
@@ -107,6 +108,16 @@ function ListIcon() {
   );
 }
 
+function RoadmapIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M2 3h2.8a1.2 1.2 0 1 1 0 2.4H3.2a1.2 1.2 0 1 0 0 2.4h4.4a1.2 1.2 0 1 1 0 2.4H6.1a1.2 1.2 0 1 0 0 2.4H14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="2.4" cy="3" r="1" fill="currentColor" />
+      <circle cx="13.6" cy="12.6" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
 function GithubDot() {
   return <div style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "var(--status-success-text)" }} />;
 }
@@ -122,6 +133,10 @@ type SidebarProps = {
 export default function Sidebar({ onLogout }: SidebarProps) {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
+  const githubConnected = useAuthStore((state) => state.githubConnected);
+  const trackedRepos = useAuthStore((state) => state.trackedRepos);
+  const awsConnected = useAwsStore((state) => state.awsConnected);
+  const environments = useAwsStore((state) => state.environments);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -130,6 +145,13 @@ export default function Sidebar({ onLogout }: SidebarProps) {
 
   // Determine active states
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
+  const onboardingStepsComplete = [
+    githubConnected,
+    trackedRepos.length > 0,
+    awsConnected,
+    environments.length > 0,
+  ].filter(Boolean).length;
+  const onboardingProgress = Math.round((onboardingStepsComplete / 4) * 100);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -188,6 +210,107 @@ export default function Sidebar({ onLogout }: SidebarProps) {
         flexDirection: "column",
         gap: "24px",
       }}>
+        {onboardingStepsComplete < 4 && (
+          <div style={{
+            background: "var(--bg-sunken)",
+            border: "1px solid var(--border-light)",
+            borderRadius: "var(--radius-lg)",
+            padding: "12px",
+            textAlign: "center",
+            display: "grid",
+            gap: "8px",
+          }}>
+            <div style={{
+              fontSize: "11px",
+              fontWeight: 700,
+              color: "var(--text-secondary)",
+              letterSpacing: "0.4px",
+              textTransform: "uppercase",
+            }}>
+              Onboarding Roadmap
+            </div>
+            <div style={{
+              fontSize: "13px",
+              fontWeight: 700,
+              color: "var(--text-primary)",
+            }}>
+              {onboardingStepsComplete} of 4 complete
+            </div>
+            <div style={{
+              width: "100%",
+              height: "6px",
+              borderRadius: "var(--radius-full)",
+              background: "var(--border-light)",
+              overflow: "hidden",
+            }}>
+              <div style={{
+                width: `${onboardingProgress}%`,
+                height: "100%",
+                background: "var(--accent)",
+                transition: "width var(--transition-base)",
+              }} />
+            </div>
+            <Link
+              to="/onboarding/github"
+              style={{
+                justifySelf: "center",
+                fontSize: "12px",
+                fontWeight: 600,
+                color: "var(--accent)",
+                textDecoration: "none",
+              }}
+            >
+              Open setup roadmap →
+            </Link>
+          </div>
+        )}
+
+        <div>
+          <label style={{
+            fontSize: "10px",
+            fontWeight: 600,
+            color: "var(--text-muted)",
+            letterSpacing: "0.8px",
+            textTransform: "uppercase",
+            padding: "0 8px",
+            display: "block",
+            marginBottom: "4px",
+          }}>
+            ONBOARDING
+          </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1px" }}>
+            <Link
+              to="/onboarding/github"
+              style={{
+                height: "36px",
+                padding: "0 10px",
+                borderRadius: "var(--radius-md)",
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                cursor: "pointer",
+                transition: "all var(--transition-base)",
+                textDecoration: "none",
+                background: isActive("/onboarding") ? "var(--bg-active)" : "transparent",
+                color: isActive("/onboarding") ? "var(--text-accent)" : "var(--text-secondary)",
+                justifyContent: "space-between",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <RoadmapIcon />
+                <span style={{ fontSize: "13px", fontWeight: isActive("/onboarding") ? 600 : 500 }}>Setup Roadmap</span>
+              </div>
+              <span style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                color: "var(--text-muted)",
+              }}>
+                {onboardingStepsComplete}/4
+              </span>
+            </Link>
+          </div>
+        </div>
+
         {/* MAIN Section */}
         <div>
           <label style={{

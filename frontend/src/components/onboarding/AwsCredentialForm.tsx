@@ -44,77 +44,84 @@ export default function AwsCredentialForm({ isSubmitting, regionError, onSubmit 
   }
 
   return (
-    <form className="aws-form" onSubmit={handleSubmit}>
-      <label className="auth-label" htmlFor="aws-access-key">AWS Access Key ID</label>
-      <input
-        id="aws-access-key"
-        className="auth-input aws-mono"
-        placeholder="AKIAIOSFODNN7EXAMPLE"
-        autoComplete="off"
-        value={accessKeyId}
-        disabled={isSubmitting}
-        onChange={(event) => setAccessKeyId(event.target.value)}
-      />
-
-      <label className="auth-label" htmlFor="aws-secret-key">AWS Secret Access Key</label>
-      <div className="auth-input-shell">
-        <input
-          id="aws-secret-key"
-          className="auth-input aws-mono"
-          placeholder="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-          autoComplete="new-password"
-          type={showSecret ? "text" : "password"}
-          value={secretAccessKey}
-          disabled={isSubmitting}
-          onChange={(event) => setSecretAccessKey(event.target.value)}
-        />
-        <div className="auth-input-right">
-          <button
-            type="button"
-            className="ghost-icon-btn"
-            onClick={() => setShowSecret((value) => !value)}
-            tabIndex={-1}
+    <form className="onboarding-aws-form" onSubmit={handleSubmit}>
+      <div className="onboarding-aws-form-grid-two">
+        <div className="auth-field">
+          <label className="onboarding-field-label" htmlFor="aws-access-key">Access key ID</label>
+          <input
+            id="aws-access-key"
+            className="auth-input aws-mono"
+            placeholder="AKIA..."
+            autoComplete="off"
+            value={accessKeyId}
             disabled={isSubmitting}
-          >
-            {showSecret ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
+            onChange={(event) => setAccessKeyId(event.target.value)}
+          />
+        </div>
+
+        <div className="auth-field">
+          <label className="onboarding-field-label" htmlFor="aws-secret-key">Secret access key</label>
+          <div className="auth-input-shell">
+            <input
+              id="aws-secret-key"
+              className="auth-input aws-mono"
+              placeholder="Enter secret key"
+              autoComplete="new-password"
+              type={showSecret ? "text" : "password"}
+              value={secretAccessKey}
+              disabled={isSubmitting}
+              onChange={(event) => setSecretAccessKey(event.target.value)}
+            />
+            <div className="auth-input-right">
+              <button
+                type="button"
+                className="ghost-icon-btn"
+                onClick={() => setShowSecret((value) => !value)}
+                tabIndex={-1}
+                disabled={isSubmitting}
+              >
+                {showSecret ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <label className="auth-label" htmlFor="aws-region">AWS Region</label>
-      <select
-        id="aws-region"
-        className={`auth-input ${regionError ? "auth-input-error" : ""}`}
-        value={region}
-        disabled={isSubmitting}
-        onChange={(event) => setRegion(event.target.value)}
-      >
-        <option value="">Select a region</option>
-        {REGION_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.value} - {option.label}
-          </option>
-        ))}
-      </select>
+      <div className="auth-field">
+        <label className="onboarding-field-label" htmlFor="aws-region">Region</label>
+        <select
+          id="aws-region"
+          className={`auth-input ${regionError ? "auth-input-error" : ""}`}
+          value={region}
+          disabled={isSubmitting}
+          onChange={(event) => setRegion(event.target.value)}
+        >
+          <option value="">Select a region</option>
+          {REGION_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.value} - {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
       {regionError ? <p className="field-error">{regionError}</p> : null}
 
-      <label className="auth-label" htmlFor="aws-alias">Account alias (optional)</label>
-      <input
-        id="aws-alias"
-        className="auth-input"
-        placeholder="my-startup-prod"
-        value={accountAlias}
-        disabled={isSubmitting}
-        onChange={(event) => setAccountAlias(event.target.value)}
-      />
-      <p className="helper-copy helper-left">A friendly name for this AWS account</p>
+      <div className="auth-field">
+        <label className="onboarding-field-label" htmlFor="aws-alias">Account alias (optional)</label>
+        <input
+          id="aws-alias"
+          className="auth-input"
+          placeholder="my-startup-prod"
+          value={accountAlias}
+          disabled={isSubmitting}
+          onChange={(event) => setAccountAlias(event.target.value)}
+        />
+      </div>
 
-      <button type="submit" className="auth-btn auth-btn-primary" disabled={isSubmitting}>
+      <button type="submit" className="onboarding-primary-btn" disabled={isSubmitting}>
         {isSubmitting ? <span className="spinner" aria-hidden="true" /> : null}
         {isSubmitting ? "Validating credentials..." : "Validate & Connect"}
       </button>
-
-      <p className="helper-copy">Credentials are AES-256 encrypted before storage</p>
     </form>
   );
 }

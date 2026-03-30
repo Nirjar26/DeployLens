@@ -226,7 +226,7 @@ export default function DashboardPage() {
         actions={<ConnectionStatus />}
       />
 
-      <div style={{ padding: "20px 32px", display: "flex", flexDirection: "column", gap: "14px" }}>
+      <div style={{ padding: "clamp(12px, 3vw, 32px)", display: "flex", flexDirection: "column", gap: "14px" }}>
         <StatsRow stats={stats} isLoading={isLoadingStats} />
 
         {activeView === "pipeline" ? (

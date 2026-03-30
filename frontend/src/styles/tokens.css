@@ -73,6 +73,15 @@
   --password-strength-good: #22c55e;
   --password-strength-strong: #16a34a;
   --aws-icon: #f97316;
+  --github-btn-bg: #24292e;
+  --github-btn-hover: #1a1f24;
+
+  /* ONBOARDING REPOSITORY LANGUAGE COLORS */
+  --repo-lang-typescript: #3178c6;
+  --repo-lang-python: #3572a5;
+  --repo-lang-javascript: #f1e05a;
+  --repo-lang-css: #563d7c;
+  --repo-lang-unknown: #94a3b8;
 
   /* BORDERS */
   --border-light:     #e2e8f0;

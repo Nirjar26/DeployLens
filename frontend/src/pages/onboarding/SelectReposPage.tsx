@@ -93,49 +93,55 @@ export default function SelectReposPage() {
   }
 
   return (
-    <section className="repos-page">
-      <header className="repos-header">
-        <h1>Select repos to track</h1>
-        <p>DeployLens will monitor Actions runs for selected repos</p>
+    <section className="onboarding-step-page onboarding-repos-page">
+      <header className="onboarding-step-header">
+        <span className="onboarding-step-badge">Step 2 of 4</span>
+        <h1>Select repos to monitor</h1>
+        <p>Choose the repositories DeployLens should watch for deployment activity</p>
       </header>
+
+      <div className="onboarding-step-divider" />
 
       <RepoSearch
         value={search}
         onChange={setSearch}
         visibleCount={visibleRepos.length}
         totalCount={repos.length}
+        selectedCount={selected.size}
       />
 
-      {isLoading ? (
-        <div className="repo-skeleton-list">
-          <div className="repo-skeleton" />
-          <div className="repo-skeleton" />
-          <div className="repo-skeleton" />
-        </div>
-      ) : (
-        <div className="repo-list">
-          {visibleRepos.map((repo) => (
-            <RepoCard
-              key={repo.github_repo_id}
-              repo={repo}
-              checked={selected.has(repo.github_repo_id)}
-              tracked={trackedIds.has(repo.github_repo_id)}
-              onToggle={toggleRepo}
-            />
-          ))}
-        </div>
-      )}
+      <div className="repo-list-shell">
+        {isLoading ? (
+          <div className="repo-skeleton-list">
+            <div className="repo-skeleton" />
+            <div className="repo-skeleton" />
+            <div className="repo-skeleton" />
+          </div>
+        ) : (
+          <div className="repo-list">
+            {visibleRepos.map((repo) => (
+              <RepoCard
+                key={repo.github_repo_id}
+                repo={repo}
+                checked={selected.has(repo.github_repo_id)}
+                tracked={trackedIds.has(repo.github_repo_id)}
+                onToggle={toggleRepo}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       <div className="repos-sticky-bar">
-        <span>{selected.size} repos selected</span>
+        <span className={`repos-sticky-count ${selected.size === 0 ? "is-empty" : ""}`}>{selected.size} repos selected</span>
         <button
           type="button"
-          className="auth-btn auth-btn-primary"
+          className="onboarding-primary-btn onboarding-primary-btn-compact"
           disabled={selected.size === 0 || isSaving}
           onClick={handleSave}
         >
           {isSaving ? <span className="spinner" aria-hidden="true" /> : null}
-          {isSaving ? "Saving..." : "Continue"}
+          {isSaving ? "Saving..." : "Continue →"}
         </button>
       </div>
 
