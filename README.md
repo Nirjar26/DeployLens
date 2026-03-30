@@ -1,6 +1,6 @@
 # DeployLens
 
-> A self-hosted CI/CD deployment visibility platform that unifies GitHub Actions and AWS CodeDeploy into a single real-time dashboard(still in the dev phase, its early access).
+> A self-hosted CI/CD deployment visibility platform that unifies GitHub Actions and AWS CodeDeploy into a single real-time dashboard.
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Node](https://img.shields.io/badge/node-20%2B-green)
@@ -308,6 +308,7 @@ This project is actively being built. Contributions are welcome.
 ## Security
 
 Credentials stored in DeployLens are encrypted with AES-256-GCM before being written to the database. The encryption key never leaves your server. If you discover a security vulnerability, please reach out directly rather than opening a public issue.
+**2FA will be added soon in the accounts.**
 
 ---
 
@@ -319,7 +320,7 @@ MIT — see [LICENSE](LICENSE) for details.
 
 ## Author
 
-Built by **Nirjxr**
+Built by **Nirjar Goswami**
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-connect-blue)](https://linkedin.com/in/your-profile)
 [![GitHub](https://img.shields.io/badge/GitHub-follow-black)](https://github.com/your-username)
