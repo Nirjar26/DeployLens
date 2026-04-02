@@ -13,6 +13,10 @@ declare global {
 const CSRF_COOKIE_NAME = "_csrf";
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+function shouldSkipCsrf(req: Request) {
+  return req.path.startsWith("/api/webhooks/");
+}
+
 function ensureCsrfSecret(req: Request, res: Response): string {
   const existing = req.cookies?.[CSRF_COOKIE_NAME];
   if (typeof existing === "string" && existing.length >= 32) {
@@ -39,6 +43,10 @@ function equalsSafe(a: string, b: string) {
 }
 
 export function csrfProtection(req: Request, res: Response, next: NextFunction) {
+  if (shouldSkipCsrf(req)) {
+    return next();
+  }
+
   const token = ensureCsrfSecret(req, res);
   req.csrfToken = () => token;
 

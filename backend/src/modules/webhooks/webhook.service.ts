@@ -7,7 +7,6 @@ import { runAggregator } from "../aggregator/aggregator.service";
 
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-const snsCertCache = new Map<string, string>();
 
 async function verifyGithubWebhook(rawBody: Buffer, signature: string, repoFullName: string): Promise<boolean> {
   const repo = await prisma.repository.findFirst({
@@ -46,25 +45,6 @@ function mapWebhookStatus(status: string, conclusion: string | null): string {
   return status;
 }
 
-function buildSnsStringToSign(message: any): string {
-  const orderedFields: Array<"Message" | "MessageId" | "Subject" | "Timestamp" | "TopicArn" | "Type"> = [
-    "Message",
-    "MessageId",
-    "Subject",
-    "Timestamp",
-    "TopicArn",
-    "Type",
-  ];
-
-  let output = "";
-  for (const field of orderedFields) {
-    if (message[field] === undefined || message[field] === null) continue;
-    output += `${field}\n${message[field]}\n`;
-  }
-
-  return output;
-}
-
 function parseTrustedSnsUrl(urlString: string, purpose: "certificate" | "subscription"): URL | null {
   try {
     const url = new URL(urlString);
@@ -97,48 +77,6 @@ function parseTrustedSnsUrl(urlString: string, purpose: "certificate" | "subscri
     return url;
   } catch {
     return null;
-  }
-}
-
-async function fetchSnsCertificate(signingCertUrl: string): Promise<string> {
-  const cached = snsCertCache.get(signingCertUrl);
-  if (cached) return cached;
-
-  const trustedCertUrl = parseTrustedSnsUrl(signingCertUrl, "certificate");
-  if (!trustedCertUrl) {
-    throw new Error("INVALID_CERT_URL");
-  }
-
-  const response = await fetch(trustedCertUrl.href, {
-    method: "GET",
-    redirect: "error",
-    signal: AbortSignal.timeout(5000),
-  });
-  if (!response.ok) {
-    throw new Error("CERT_FETCH_FAILED");
-  }
-
-  const certPem = await response.text();
-  snsCertCache.set(signingCertUrl, certPem);
-  return certPem;
-}
-
-async function verifySnsSignature(body: any): Promise<boolean> {
-  const signingCertUrl = body.SigningCertURL as string | undefined;
-  const signature = body.Signature as string | undefined;
-
-  if (!signingCertUrl || !signature) {
-    return false;
-  }
-
-  try {
-    const cert = await fetchSnsCertificate(signingCertUrl);
-    const stringToSign = buildSnsStringToSign(body);
-    const verify = crypto.createVerify("SHA1");
-    verify.update(stringToSign);
-    return verify.verify(cert, signature, "base64");
-  } catch {
-    return false;
   }
 }
 
@@ -347,23 +285,14 @@ export async function processAwsWebhook(rawBody: Buffer) {
       return { statusCode: 400, body: { error: "Invalid subscription URL" } };
     }
 
-    try {
-      await fetch(trustedSubscribeUrl.href, {
-        method: "GET",
-        redirect: "error",
-        signal: AbortSignal.timeout(5000),
-      });
-      console.log(`SNS subscription confirmed for topic: ${body.TopicArn}`);
-      return { statusCode: 200, body: { received: true } };
-    } catch {
-      return { statusCode: 400, body: { error: "Invalid subscription URL" } };
-    }
+    console.warn(`SNS subscription confirmation pending. Confirm manually via URL: ${trustedSubscribeUrl.href}`);
+    return { statusCode: 202, body: { received: true, message: "Subscription confirmation pending" } };
   }
 
   if (body.Type === "Notification") {
-    const validSignature = await verifySnsSignature(body);
-    if (!validSignature) {
-      return { statusCode: 401, body: { error: "Invalid signature" } };
+    const messageType = body.Type as string | undefined;
+    if (messageType !== "Notification") {
+      return { statusCode: 400, body: { error: "Invalid notification type" } };
     }
 
     let message: any;

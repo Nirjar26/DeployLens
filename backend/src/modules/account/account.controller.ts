@@ -67,7 +67,6 @@ export async function updatePassword(req: Request, res: Response, next: NextFunc
     }
 
     const result = await accountService.updatePassword(req.user.id, body.currentPassword, body.newPassword, req);
-    res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, getCookieOptions());
 
     return sendSuccess(res, {
       accessToken: result.accessToken,
