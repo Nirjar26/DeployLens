@@ -65,12 +65,38 @@ function buildSnsStringToSign(message: any): string {
   return output;
 }
 
-function isTrustedAwsHostname(urlString: string): boolean {
+function parseTrustedSnsUrl(urlString: string, purpose: "certificate" | "subscription"): URL | null {
   try {
     const url = new URL(urlString);
-    return url.hostname.endsWith(".amazonaws.com");
+    if (url.protocol !== "https:") {
+      return null;
+    }
+
+    if (url.username || url.password || url.port || url.hash) {
+      return null;
+    }
+
+    if (!/^sns\.[a-z0-9-]+\.amazonaws\.com$/i.test(url.hostname)) {
+      return null;
+    }
+
+    if (purpose === "certificate") {
+      const hasPemPath = /\.pem$/i.test(url.pathname);
+      if (!hasPemPath || url.search) {
+        return null;
+      }
+    }
+
+    if (purpose === "subscription") {
+      const action = url.searchParams.get("Action");
+      if (url.pathname !== "/" || action !== "ConfirmSubscription") {
+        return null;
+      }
+    }
+
+    return url;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -78,11 +104,16 @@ async function fetchSnsCertificate(signingCertUrl: string): Promise<string> {
   const cached = snsCertCache.get(signingCertUrl);
   if (cached) return cached;
 
-  if (!isTrustedAwsHostname(signingCertUrl)) {
+  const trustedCertUrl = parseTrustedSnsUrl(signingCertUrl, "certificate");
+  if (!trustedCertUrl) {
     throw new Error("INVALID_CERT_URL");
   }
 
-  const response = await fetch(signingCertUrl);
+  const response = await fetch(trustedCertUrl.href, {
+    method: "GET",
+    redirect: "error",
+    signal: AbortSignal.timeout(5000),
+  });
   if (!response.ok) {
     throw new Error("CERT_FETCH_FAILED");
   }
@@ -311,12 +342,17 @@ export async function processAwsWebhook(rawBody: Buffer) {
 
   if (body.Type === "SubscriptionConfirmation") {
     const subscribeUrl = body.SubscribeURL as string | undefined;
-    if (!subscribeUrl || !isTrustedAwsHostname(subscribeUrl)) {
+    const trustedSubscribeUrl = subscribeUrl ? parseTrustedSnsUrl(subscribeUrl, "subscription") : null;
+    if (!trustedSubscribeUrl) {
       return { statusCode: 400, body: { error: "Invalid subscription URL" } };
     }
 
     try {
-      await fetch(subscribeUrl, { method: "GET" });
+      await fetch(trustedSubscribeUrl.href, {
+        method: "GET",
+        redirect: "error",
+        signal: AbortSignal.timeout(5000),
+      });
       console.log(`SNS subscription confirmed for topic: ${body.TopicArn}`);
       return { statusCode: 200, body: { received: true } };
     } catch {

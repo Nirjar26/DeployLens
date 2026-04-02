@@ -17,6 +17,16 @@ function getCookieOptions() {
   };
 }
 
+export async function getCsrfToken(req: Request, res: Response) {
+  if (typeof req.csrfToken !== "function") {
+    throw new Error("CSRF_NOT_CONFIGURED");
+  }
+
+  return sendSuccess(res, {
+    csrfToken: req.csrfToken(),
+  });
+}
+
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
     const body = registerSchema.parse(req.body);

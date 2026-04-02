@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { verifyToken } from "../../middleware/verifyToken";
+import { apiRateLimiter } from "../../middleware/rateLimit";
 import * as analyticsController from "./analytics.controller";
 
 const router = Router();
 
+router.use(apiRateLimiter);
 router.use(verifyToken);
 router.get("/overview", analyticsController.getOverview);
 router.get("/frequency", analyticsController.getFrequency);

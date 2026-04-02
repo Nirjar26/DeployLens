@@ -109,9 +109,12 @@ export async function listDeployments(userId: string, filters: DeploymentFilters
   const where = buildWhere(userId, filters);
 
   // Validate and set sort field
-  const validSortFields = ["created_at", "duration_seconds", "unified_status"];
-  const sortField = validSortFields.includes(filters.sort_by || "")
-    ? filters.sort_by
+  const validSortFields = ["created_at", "duration_seconds", "unified_status"] as const;
+  const requestedSortField = filters.sort_by;
+  const sortField: (typeof validSortFields)[number] = validSortFields.includes(
+    requestedSortField as (typeof validSortFields)[number],
+  )
+    ? (requestedSortField as (typeof validSortFields)[number])
     : "created_at";
 
   const sortDirection = filters.sort_dir === "asc" ? "asc" : "desc";
@@ -143,7 +146,7 @@ export async function listDeployments(userId: string, filters: DeploymentFilters
     }),
   ]);
 
-  const uniqueRepoEnv = Array.from(new Set(
+  const uniqueRepoEnv: string[] = Array.from(new Set(
     rows
       .filter((row: any) => row.environment_id)
       .map((row: any) => `${row.repository_id}::${row.environment_id}`),

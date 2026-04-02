@@ -1,10 +1,12 @@
 import { Router } from "express";
 import { verifyToken } from "../../middleware/verifyToken";
+import { apiRateLimiter } from "../../middleware/rateLimit";
 import { sendSuccess } from "../../utils/response";
 import { getAggregatorStatus, runAggregator } from "./aggregator.service";
 
 const router = Router();
 
+router.use(apiRateLimiter);
 router.use(verifyToken);
 
 router.post("/run", async (req, res, next) => {

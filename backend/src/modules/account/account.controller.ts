@@ -71,7 +71,6 @@ export async function updatePassword(req: Request, res: Response, next: NextFunc
 
     return sendSuccess(res, {
       accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
     });
   } catch (error) {
     if (error instanceof Error && error.message === "WRONG_PASSWORD") {

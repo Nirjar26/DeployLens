@@ -20,6 +20,16 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   console.error(err);
   const isProd = process.env.NODE_ENV === "production";
 
+  if ((err as { code?: string })?.code === "EBADCSRFTOKEN") {
+    return res.status(403).json({
+      success: false,
+      error: {
+        code: "INVALID_CSRF_TOKEN",
+        message: "Invalid CSRF token",
+      },
+    });
+  }
+
   if (err instanceof ZodError) {
     return res.status(400).json({
       success: false,

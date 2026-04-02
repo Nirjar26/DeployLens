@@ -788,6 +788,10 @@ export async function upsertWorkflowRunFromWebhook(payload: {
 }
 
 export async function rerunWorkflowRun(userId: string, runId: string, req?: Request) {
+  if (!/^\d+$/.test(runId)) {
+    throw new Error("INVALID_RUN_ID");
+  }
+
   const deployment = await prisma.deployment.findFirst({
     where: {
       github_run_id: String(runId),
@@ -820,9 +824,17 @@ export async function rerunWorkflowRun(userId: string, runId: string, req?: Requ
 
   const token = await getGithubAccessTokenForUser(userId);
   const github = createGithubClient(token, userId);
+  const repoOwner = deployment.repository.owner;
+  const repoName = deployment.repository.name;
+
+  if (!/^[a-zA-Z0-9_.-]+$/.test(repoOwner) || !/^[a-zA-Z0-9_.-]+$/.test(repoName)) {
+    throw new Error("INVALID_REPOSITORY_NAME");
+  }
 
   try {
-    await github.post(`/repos/${deployment.repository.owner}/${deployment.repository.name}/actions/runs/${runId}/rerun`);
+    await github.post(
+      `/repos/${encodeURIComponent(repoOwner)}/${encodeURIComponent(repoName)}/actions/runs/${runId}/rerun`,
+    );
   } catch (error: any) {
     const status = error?.response?.status as number | undefined;
     if (status === 403) {

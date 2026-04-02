@@ -48,6 +48,6 @@ export function validateEnv() {
   }
 
   if (!process.env.AWS_WEBHOOK_SECRET) {
-    console.warn("WARNING: SNS_TOPIC_ARN not set — real-time CodeDeploy events disabled, polling only");
+    console.warn("WARNING: AWS_WEBHOOK_SECRET not set — AWS webhook endpoint can be abused without a shared secret");
   }
 }

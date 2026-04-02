@@ -12,6 +12,7 @@ import deploymentRouter from "./modules/deployments/deployment.routes";
 import environmentRouter from "./modules/environments/environment.routes";
 import githubRouter from "./modules/github/github.routes";
 import webhookRouter from "./modules/webhooks/webhook.routes";
+import { csrfProtection } from "./middleware/csrfProtection";
 import { errorHandler } from "./middleware/errorHandler";
 import { requestLogger } from "./middleware/requestLogger";
 
@@ -54,6 +55,7 @@ app.use("/api/webhooks", webhookRouter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(csrfProtection);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "ok" } });

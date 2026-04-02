@@ -15,10 +15,7 @@ declare global {
 
 export function verifyToken(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
-  const allowGithubQueryToken = req.method === "GET" && req.path === "/github";
-  const queryToken = allowGithubQueryToken && typeof req.query.token === "string" ? req.query.token : null;
-
-  const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.slice(7) : queryToken;
+  const token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
   if (!token) {
     return sendError(res, "NO_TOKEN", "Authorization header required", 401);

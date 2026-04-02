@@ -1,5 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { clearAccessToken, getAccessToken, refreshAccessToken } from "./auth";
+import { clearCsrfToken, getCsrfToken } from "./csrf";
 
 const baseURL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 
@@ -112,11 +113,19 @@ const api = axios.create({
   withCredentials: true,
 });
 
-api.interceptors.request.use((config) => {
+api.interceptors.request.use(async (config) => {
   const token = getAccessToken();
 
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  const method = (config.method ?? "get").toLowerCase();
+  const needsCsrf = method === "post" || method === "put" || method === "patch" || method === "delete";
+
+  if (needsCsrf) {
+    const csrfToken = await getCsrfToken();
+    config.headers["X-CSRF-Token"] = csrfToken;
   }
 
   return config;
@@ -127,6 +136,7 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as RetryConfig | undefined;
     const status = error.response?.status;
+    const errorCode = (error.response?.data as { error?: { code?: string } } | undefined)?.error?.code;
     const requestUrl = originalRequest?.url ?? "";
     const isAuthEndpoint =
       requestUrl.includes("/api/auth/login") ||
@@ -146,6 +156,18 @@ api.interceptors.response.use(
         if (onAuthFailure) {
           onAuthFailure();
         }
+      }
+    }
+
+    if (status === 403 && errorCode === "INVALID_CSRF_TOKEN" && originalRequest && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        clearCsrfToken();
+        originalRequest.headers["X-CSRF-Token"] = await getCsrfToken(true);
+        return api(originalRequest);
+      } catch {
+        return Promise.reject(error);
       }
     }
 

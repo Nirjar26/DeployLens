@@ -1,5 +1,6 @@
 import axios from "axios";
 import { reconnectSocket } from "./socket";
+import { clearCsrfToken, getCsrfToken } from "./csrf";
 
 let accessToken: string | null = null;
 
@@ -15,13 +16,19 @@ export function setAccessToken(token: string | null) {
 
 export function clearAccessToken() {
   accessToken = null;
+  clearCsrfToken();
 }
 
 export async function refreshAccessToken(): Promise<string> {
+  const csrfToken = await getCsrfToken();
+
   const response = await axios.post(
     `${baseURL}/api/auth/refresh`,
     {},
     {
+      headers: {
+        "X-CSRF-Token": csrfToken,
+      },
       withCredentials: true,
     },
   );
