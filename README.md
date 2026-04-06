@@ -18,7 +18,9 @@ GitHub Actions and AWS CodeDeploy expose related deployment data in separate sys
 
 ## Architecture / Flow
 
-![Architecture](./diagram/Architecture.png)
+<p align="center">
+  <img src="./diagram/Architecture.png" alt="Architecture" width="760" />
+</p>
 
 
 ## Tech Stack
