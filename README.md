@@ -63,15 +63,19 @@ npm run dev
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/deploylens
+
 JWT_SECRET=<64 hex chars>
 JWT_REFRESH_SECRET=<64 hex chars>
 ENCRYPTION_KEY=<64 hex chars>
 PORT=3001
+
 FRONTEND_URL=http://localhost:5173
+
 GITHUB_CLIENT_ID=<github-oauth-client-id>
 GITHUB_CLIENT_SECRET=<github-oauth-client-secret>
 GITHUB_WEBHOOK_SECRET=<random-string>
 GITHUB_REDIRECT_URI=http://localhost:3001/api/auth/github/callback
+
 AWS_ACCESS_KEY_ID=<aws-access-key-id>
 AWS_SECRET_ACCESS_KEY=<aws-secret-access-key>
 AWS_REGION=<aws-region>
@@ -93,13 +97,50 @@ AWS_REGION=<aws-region>
 
 ## Folder Structure
 
-```text
-/frontend
-/backend
-/backend/src/modules
-/backend/src/jobs
-/backend/prisma
-```
+- deploylens
+  - README.md
+  - diagram
+    - Architecture.png
+  - backend
+    - package.json
+    - tsconfig.json
+    - prisma
+      - schema.prisma
+      - migrations
+      - seed.ts
+    - src
+      - app.ts
+      - server.ts
+      - jobs
+      - middleware
+      - modules
+        - auth
+        - account
+        - github
+        - aws
+        - deployments
+        - environments
+        - aggregator
+        - analytics
+        - audit
+        - webhooks
+        - websocket
+      - utils
+  - frontend
+    - package.json
+    - index.html
+    - vite.config.ts
+    - src
+      - App.tsx
+      - main.tsx
+      - components
+      - pages
+      - hooks
+      - lib
+      - store
+      - styles
+      - assets
+      - types
 
 ## License
 
