@@ -97,50 +97,213 @@ AWS_REGION=<aws-region>
 
 ## Folder Structure
 
-- deploylens
-  - README.md
-  - diagram
-    - Architecture.png
-  - backend
-    - package.json
-    - tsconfig.json
-    - prisma
-      - schema.prisma
-      - migrations
-      - seed.ts
-    - src
-      - app.ts
-      - server.ts
-      - jobs
-      - middleware
-      - modules
-        - auth
-        - account
-        - github
-        - aws
-        - deployments
-        - environments
-        - aggregator
-        - analytics
-        - audit
-        - webhooks
-        - websocket
-      - utils
-  - frontend
-    - package.json
-    - index.html
-    - vite.config.ts
-    - src
-      - App.tsx
-      - main.tsx
-      - components
-      - pages
-      - hooks
-      - lib
-      - store
-      - styles
-      - assets
-      - types
+```text
+deploylens/
+  README.md
+  diagram/
+    Architecture.png
+  backend/
+    backend-log.txt
+    package.json
+    tsconfig.json
+    prisma/
+      schema.prisma
+      seed.js
+      seed.ts
+      migrations/
+        migration_lock.toml
+        20260323040757_init/
+          migration.sql
+        20260323104220_add_audit_log/
+          migration.sql
+        20260328113000_add_refresh_token_updated_at/
+          migration.sql
+    src/
+      app.ts
+      server.ts
+      jobs/
+        codedeployPoller.ts
+        githubPoller.ts
+      middleware/
+        csrfProtection.ts
+        errorHandler.ts
+        rateLimit.ts
+        requestLogger.ts
+        verifyToken.ts
+      modules/
+        account/
+          account.controller.ts
+          account.routes.ts
+          account.service.ts
+        aggregator/
+          aggregator.job.ts
+          aggregator.routes.ts
+          aggregator.service.ts
+          aggregator.types.ts
+        analytics/
+          analytics.controller.ts
+          analytics.routes.ts
+          analytics.service.ts
+        audit/
+          audit.controller.ts
+          audit.routes.ts
+          audit.service.ts
+        auth/
+          auth.controller.ts
+          auth.routes.ts
+          auth.schema.ts
+          auth.service.ts
+        aws/
+          aws.controller.ts
+          aws.routes.ts
+          aws.service.ts
+          aws.types.ts
+        deployments/
+          deployment.controller.ts
+          deployment.routes.ts
+          deployment.service.ts
+        environments/
+          environment.controller.ts
+          environment.routes.ts
+          environment.schema.ts
+          environment.service.ts
+        github/
+          github.controller.ts
+          github.routes.ts
+          github.service.ts
+          github.types.ts
+        webhooks/
+          webhook.controller.ts
+          webhook.routes.ts
+          webhook.service.ts
+        websocket/
+          socket.middleware.ts
+          socket.server.ts
+          socket.service.ts
+          socket.types.ts
+      utils/
+        auditLog.ts
+        awsClient.ts
+        deploymentStatus.ts
+        emitDeploymentUpdate.ts
+        encryption.ts
+        githubClient.ts
+        jwt.ts
+        realtime.ts
+        response.ts
+        time.ts
+        unifiedStatus.ts
+        validateEnv.ts
+  frontend/
+    index.html
+    package.json
+    tsconfig.app.json
+    tsconfig.json
+    vite.config.ts
+    src/
+      App.tsx
+      main.tsx
+      styles.css
+      assets/
+        icons/
+          custom/
+            .gitkeep
+            audit-svgrepo-com.svg
+            connect-svgrepo-com.svg
+            DeployLens.png
+            sign-out-left-2-svgrepo-com.svg
+      components/
+        auth/
+          AuthButton.tsx
+          AuthCard.tsx
+          AuthInput.tsx
+        dashboard/
+          ActiveDeploymentsBanner.tsx
+          CompareModal.tsx
+          ConnectionStatus.tsx
+          DensityToggle.tsx
+          DeploymentDrawer.tsx
+          DeploymentModal.tsx
+          DeploymentRow.tsx
+          EmptyState.tsx
+          EnvironmentColumn.tsx
+          EnvironmentSwimlanes.tsx
+          ExportButton.tsx
+          FailedDeploymentAlert.tsx
+          FilterBar.tsx
+          InsightBar.tsx
+          InsightPanel.tsx
+          KeyboardShortcutsModal.tsx
+          LastGoodDeploy.tsx
+          LoadingSkeleton.tsx
+          LongRunningWarning.tsx
+          PipelineTable.tsx
+          Sidebar.tsx
+          StatsRow.tsx
+          StatusBadge.tsx
+          StatusFilterChips.tsx
+          TopDeployers.tsx
+        layout/
+          PageHeader.tsx
+          ProtectedLayout.tsx
+          SettingsLayout.tsx
+        onboarding/
+          AwsCredentialForm.tsx
+          EnvironmentCard.tsx
+          EnvironmentMapper.tsx
+          RepoCard.tsx
+          RepoSearch.tsx
+          StepIndicator.tsx
+        shared/
+          AppErrorBoundary.tsx
+          ConfirmModal.tsx
+          CopyButton.tsx
+          FormField.tsx
+          Toast.tsx
+          Tooltip.tsx
+      hooks/
+        useDeploymentDetail.ts
+        useDeployments.ts
+        useDeploymentSocket.ts
+        useKeyboardShortcuts.ts
+        useSocket.ts
+        useSocketStatus.ts
+        useToast.tsx
+      lib/
+        api.ts
+        auth.ts
+        csrf.ts
+        formatters.ts
+        socket.ts
+      pages/
+        AnalyticsPage.tsx
+        DashboardPage.tsx
+        LoginPage.tsx
+        RegisterPage.tsx
+        SettingsPage.tsx
+        onboarding/
+          ConnectAwsPage.tsx
+          ConnectGithubPage.tsx
+          MapEnvironmentsPage.tsx
+          OnboardingLayout.tsx
+          SelectReposPage.tsx
+        settings/
+          AuditLogPage.tsx
+          EnvironmentsPage.tsx
+          IntegrationsPage.tsx
+          ProfilePage.tsx
+          RepositoriesPage.tsx
+          SecurityPage.tsx
+          settingsHelpers.ts
+      store/
+        authStore.ts
+        awsStore.ts
+        deploymentStore.ts
+      styles/
+        tokens.css
+      types/
+        socket.types.ts
+```
 
 ## License
 
