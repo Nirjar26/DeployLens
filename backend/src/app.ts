@@ -49,13 +49,13 @@ app.use(cors({
 }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(requestLogger);
-app.use(csrfProtection);
 
 // Webhook routes must be mounted before JSON body parsing for signature validation.
 app.use("/api/webhooks", webhookRouter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/api", csrfProtection);
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ success: true, data: { status: "ok" } });
