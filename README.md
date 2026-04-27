@@ -143,5 +143,5 @@ MIT License
 ## Author / Contact
 
 Nirjar Goswami  
-GitHub: https://github.com/Nirjar26
+GitHub: https://github.com/nirjxr26
 
